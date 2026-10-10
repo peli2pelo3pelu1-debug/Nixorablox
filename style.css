@@ -75,3 +75,92 @@ body.touch.controls-buttons #jb{width:var(--btn-size,54px);height:var(--btn-size
 body.touch #jb,body.touch #cb,body.touch #ab{width:var(--btn-size,80px);height:var(--btn-size,80px);font-size:24px}
 body.touch #ex{min-width:48px;min-height:44px}
 @media(max-width:700px){#hud{max-width:55vw;font-size:12px}#chat{width:min(260px,64vw)}}
+
+
+/* Ajustes de controles táctiles Nixora Blox Mobile */
+@media (pointer: coarse), (max-width: 700px) {
+  body.touch #chat {
+    top: calc(10px + env(safe-area-inset-top, 0px));
+    left: 10px;
+    bottom: auto;
+    width: min(270px, 56vw);
+    z-index: 4;
+  }
+  body.touch #log {
+    max-height: 86px;
+    overflow-y: auto;
+    font-size: 12px;
+    background: #080611c9;
+    border: 1px solid #ffffff30;
+  }
+  body.touch #chat .r input {
+    min-width: 0;
+    font-size: 13px;
+    padding: 7px;
+  }
+  body.touch #chat .r button {
+    padding: 6px 8px;
+  }
+  body.touch #hud {
+    top: calc(48px + env(safe-area-inset-top, 0px));
+    left: auto;
+    right: 10px;
+    max-width: 43vw;
+    padding: 6px 8px;
+    font-size: 12px;
+    background: #0009;
+  }
+  body.touch #ex {
+    top: calc(8px + env(safe-area-inset-top, 0px));
+    right: 10px;
+    z-index: 5;
+    padding: 7px 10px;
+  }
+  body.touch #joy {
+    left: max(18px, env(safe-area-inset-left, 0px));
+    bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+    width: var(--joy-size, 120px);
+    height: var(--joy-size, 120px);
+    z-index: 3;
+    background: #ffffff35;
+    border: 2px solid #ffffff55;
+    touch-action: none;
+  }
+  body.touch #knob {
+    background: #c77dff;
+    border: 2px solid #ffffffbb;
+    box-shadow: 0 2px 10px #0008;
+  }
+  body.touch #jb {
+    right: max(22px, env(safe-area-inset-right, 0px));
+    bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+    z-index: 3;
+    width: 72px;
+    height: 72px;
+    font-size: 28px;
+    font-weight: 800;
+    border: 2px solid #ffffff99;
+    box-shadow: 0 3px 12px #0008;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  body.touch #cb {
+    right: max(108px, calc(100px + env(safe-area-inset-right, 0px)));
+    bottom: calc(34px + env(safe-area-inset-bottom, 0px));
+    z-index: 3;
+    width: 62px;
+    height: 62px;
+    font-size: 25px;
+    border: 2px solid #ffffff99;
+    box-shadow: 0 3px 12px #0008;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  body.touch #ab {
+    right: max(26px, env(safe-area-inset-right, 0px));
+    bottom: calc(112px + env(safe-area-inset-bottom, 0px));
+    z-index: 3;
+    width: 58px;
+    height: 58px;
+  }
+}
