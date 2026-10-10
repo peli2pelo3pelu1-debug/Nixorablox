@@ -25,16 +25,3 @@ El proyecto conserva Electron. En una computadora con Node.js e internet:
   npm install
   npm run dist-win
 El instalador se genera en dist/. No se adjunta un EXE ya compilado en este paquete.
-
-
-MEJORAS DE ESTA VERSION
-- Zoom de cámara móvil con dos dedos: separarlos acerca y juntarlos aleja.
-- Salto con detección de pulsación y animación visible al saltar; agacharse flexiona brazos/piernas y baja el personaje.
-- Chat público plegable con el botón «−» o la tecla «-» en PC. Los mensajes nuevos muestran el chat temporalmente y se oculta tras 5 segundos. Se quitaron los botones de micrófono y sonido del chat público.
-- Amigos: buscar cuentas registradas en este navegador, enviar/aceptar solicitudes, bloquear, desbloquear, eliminar y abrir el apartado de mensajes privados.
-- Panel de administración: lista de jugadores conectados por nombre/mundo y campo para escribir o seleccionar un usuario.
-
-LIMITES IMPORTANTES
-- Las cuentas, amistades y los mensajes privados siguen guardándose en el almacenamiento local del navegador de esta versión; no se sincronizan automáticamente entre dispositivos.
-- El panel puede listar jugadores conectados al servidor; para aplicar sanciones de administrador a jugadores remotos y para tener amigos/chat privados reales entre dispositivos hace falta implementar autenticación y almacenamiento social en el servidor. El selector avisa cuando la cuenta no está disponible localmente.
-- El paquete usa Three.js desde CDN, por lo que el juego 3D necesita internet para cargar esa librería.

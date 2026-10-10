@@ -5,7 +5,7 @@ const PORT=process.env.PORT||3000,T={'.html':'text/html','.css':'text/css','.js'
 const BW=['puta','puto','mierda','pendejo','idiota','estupido','estúpido','imbecil','imbécil','cabron','cabrón','verga','coño','joder','carajo','marica','maricon','zorra','fuck','shit','bitch','asshole','dick','cunt'];
 const RE=new RegExp('(?<![a-záéíóúñ])('+BW.join('|')+')(?![a-záéíóúñ])','gi');
 const clean=m=>String(m).slice(0,200).replace(RE,w=>'#'.repeat(w.length));
-const srv=http.createServer((q,r)=>{if(q.url.startsWith('/players')){const list=[...P.values()].map(p=>({n:p.n,g:p.g,rank:p.rank}));r.writeHead(200,{'Content-Type':'application/json; charset=utf-8','Access-Control-Allow-Origin':'*','Cache-Control':'no-store'});return r.end(JSON.stringify({players:list}))}if(q.url.startsWith('/count')){const g=new URL(q.url,'http://x').searchParams.get('g');r.writeHead(200,{'Content-Type':'application/json','Access-Control-Allow-Origin':'*'});return r.end(JSON.stringify({n:[...P.values()].filter(p=>p.g==g).length}))}let f=q.url.split('?')[0];if(f=='/')f='/index.html';
+const srv=http.createServer((q,r)=>{if(q.url.startsWith('/count')){const g=new URL(q.url,'http://x').searchParams.get('g');r.writeHead(200,{'Content-Type':'application/json','Access-Control-Allow-Origin':'*'});return r.end(JSON.stringify({n:[...P.values()].filter(p=>p.g==g).length}))}let f=q.url.split('?')[0];if(f=='/')f='/index.html';
  const p=path.join(__dirname,path.normalize(f));if(!p.startsWith(__dirname)){r.writeHead(403);return r.end()}
  fs.readFile(p,(e,b)=>{if(e){r.writeHead(404);return r.end('No encontrado')}r.writeHead(200,{'Content-Type':T[path.extname(p)]||'application/octet-stream'});r.end(b)})});
 const wss=new WebSocketServer({server:srv}),P=new Map();let nid=1;
