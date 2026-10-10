@@ -171,28 +171,135 @@ box(mine,0,.1,0,40,.3,40,'#4f4a45');for(let i=0;i<12;i++){const z=-i*3,x=Math.si
 box(mine,0,2,-18,1,4,1,'#9c6644');box(mine,3,2,-18,1,4,1,'#9c6644');box(mine,1.5,.35,-18,5,.3,1,'#adb5bd');
 for(let i=0;i<25;i++){const a=i*.46,r=5+i*.42,x=Math.cos(a)*r,z=Math.sin(a)*r,y=.7+i*.24;box(dragon,x,y,z,3,.7,3,i%5===0?'#c1121f':'#57516e');if(i%5===0)box(dragon,x,y+.6,z,.6,.6,.6,'#ffd166',1,0,'',2,1,6)}
 box(dragon,0,7,-14,7,1,7,'#3b263a');box(dragon,0,8,-14,3,1,3,'#ffd166',1,0,'',2,1,6);
+const OBBY_SCRIPT_BASE = String.raw`(function(){
+ const MODE="__MODE__", P=game.player, parts={};
+ const TOTAL_TYPES=1536, STEP=4.4;
+ let made=0,best=0,deaths=0,pathX=0,pathY=.8,started=0;
+ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+ const rnd=(i,k)=>{const q=Math.sin((i+1)*127.1+(k+1)*311.7+(Math.floor(i/TOTAL_TYPES)+1)*74.7+MODE.charCodeAt(0)*19.19)*43758.5453123;return q-Math.floor(q)};
+ const palette=(v)=>{
+   if(MODE==='lava')return ['#ff6b35','#e63946','#ffba08','#f77f00','#9d0208'][v%5];
+   if(MODE==='neon')return ['#00e5ff','#ff00aa','#9d4edd','#80ffdb','#ffd166'][v%5];
+   if(MODE==='water')return ['#00b4d8','#48cae4','#80ffdb','#0077b6','#caf0f8'][v%5];
+   if(MODE==='forest')return ['#2d6a4f','#40916c','#95d5b2','#b5e48c','#588157'][v%5];
+   if(MODE==='gravity')return ['#7b2cbf','#4361ee','#4cc9f0','#f72585','#ffd166'][v%5];
+   if(MODE==='climb')return ['#8d5524','#c9a66b','#adb5bd','#2fbf5b','#00b4d8'][v%5];
+   return ['#6c5ce7','#00b4d8','#ff8fab','#ffd166','#2fbf5b','#e76f51'][v%6];
+ };
+ const add=(i,list,b)=>{const m=game.addBlock(b);if(m)list.push(m);return m};
+ function makeStage(i){
+   const encoded=(i*37)%TOTAL_TYPES, phase=encoded%12, variant=Math.floor(encoded/12);
+   const z=-6-i*STEP;
+   pathX=clamp(pathX+(rnd(i,1)-.5)*1.35,-5.2,5.2);
+   const x=pathX, surface=pathY, list=[], color=palette(variant+phase*3), shade=variant%7;
+   let w=3.0+(variant%5)*.12, depth=3.85;
+   if(phase===1){w=2.15+(variant%4)*.1;depth=3.45}
+   if(phase===2){w=2.45+(variant%4)*.12;depth=3.6}
+   if(phase===4){w=1.75+(variant%4)*.07;depth=3.35}
+   if(phase===8){w=2.55+(variant%3)*.1;depth=3.7}
+   if(phase===9){w=2.05+(variant%3)*.1;depth=3.4}
+   const checkpoint=(phase===0);
+   add(i,list,[x,surface-.3,z,w,.6,depth,checkpoint?'#2fbf5b':color,1,1,'',0,0,checkpoint?2:0]);
+   const coin=(xx,yy,zz)=>add(i,list,[xx,yy,zz,.38,.38,.38,'#ffd166',1,0,'',2,1,6]);
+   const deco=(xx,yy,zz,ww,hh,dd,c,solid=1,func=0)=>add(i,list,[xx,yy,zz,ww,hh,dd,c,1,solid,'',0,0,func]);
+   // Each segment is one of 12 challenge families with 128 deterministic parameter variants.
+   if(phase===1){
+     const side=rnd(i,2)<.5?-1:1;
+     deco(x+side*1.65,surface-.23,z-1.15,1.15,.46,1.35,palette(variant+2));
+     deco(x-side*1.35,surface-.23,z-2.5,1.05,.46,1.15,palette(variant+4));
+     if(variant%3===0)coin(x+side*1.6,surface+.8,z-1.2);
+   }
+   if(phase===2){
+     const m=deco(x+(rnd(i,3)<.5?-1:1)*1.05,surface-.16,z-2.0,1.4,.32,1.55,'#00e5ff');
+     game.moveBlock(m,'x',.55+(variant%5)*.18,.65+(variant%4)*.22);
+     if(MODE==='race'||MODE==='neon')deco(x,surface+.09,z-.65,1.0,.16,.8,'#00e5ff',0,5);
+   }
+   if(phase===3){
+     const offset=1.02+(variant%3)*.1;
+     deco(x-offset,surface+.6,z-.9,.42,1.2,1.9,'#ff394f',0,3);
+     deco(x+offset,surface+.6,z-.9,.42,1.2,1.9,'#ff394f',0,3);
+     coin(x,surface+.7,z-1.25);
+   }
+   if(phase===4){
+     // Narrow, level beam with adjacent handrails; the next landing remains reachable.
+     deco(x-.98,surface+.34,z-.15,.12,.68,3.1,'#adb5bd');
+     deco(x+.98,surface+.34,z-.15,.12,.68,3.1,'#adb5bd');
+     if(variant%2===0)coin(x,surface+.72,z-1.15);
+   }
+   const climbThis=phase===5||(MODE==='climb'&&(phase===2||phase===8));
+   if(climbThis){
+     const height=2.4;
+     const ladder=game.ladder(x,surface,z-1.0,height);list.push(ladder);
+     const high=surface+height;
+     deco(x,high-.3,z-2.5,3.5,.6,3.0,'#a8dadc');
+     coin(x,high+.65,z-2.4);
+     pathY=high;
+   }
+   if(phase===6){
+     deco(x,surface+.08,z,.95,.16,.95,'#ff00aa',0,4);
+     coin(x+(rnd(i,6)-.5)*1.1,surface+.8,z-1.15);
+   }
+   if(phase===7){
+     deco(x-1.42,surface+.83,z-.2,.18,1.66,3.3,MODE==='lava'?'#ffba08':'#6c757d');
+     deco(x+1.42,surface+.83,z-.2,.18,1.66,3.3,MODE==='lava'?'#ffba08':'#6c757d');
+     deco(x,surface+2.28,z-.25,2.95,.28,3.25,'#495057');
+     if(variant%3===0)coin(x,surface+1.35,z-1.0);
+   }
+   if(phase===8&&!climbThis){
+     const m=deco(x+(rnd(i,8)<.5?-1:1)*.72,surface-.14,z-2.15,1.35,.32,1.25,palette(variant+5));
+     game.moveBlock(m,'y',.35+(variant%4)*.1,.8+(variant%3)*.2);
+     if(variant%2===0)coin(x,surface+.7,z-1.7);
+   }
+   if(phase===9){
+     deco(x+(rnd(i,9)<.5?-.65:.65),surface-.23,z-1.08,1.22,.46,1.25,palette(variant+1));
+     deco(x+(rnd(i,10)<.5?.7:-.7),surface-.23,z-2.35,1.22,.46,1.25,palette(variant+2));
+   }
+   if(phase===10){
+     const drop=Math.min(2.4,Math.max(0,pathY-.8));
+     if(drop>.1){
+       for(let step=1;step<=4;step++){
+         const sy=surface-drop*step/4;
+         deco(x+(rnd(i,11+step)-.5)*.4,sy-.14,z-step*.82,2.65,.28,1.45,palette(variant+step));
+       }
+       pathY=surface-drop;
+     }else{
+       deco(x,surface+.08,z-1.0,1.0,.16,.9,'#ff00aa',0,4);
+       deco(x-.8,surface+.4,z-2.2,.3,.8,.3,'#00e5ff');
+       deco(x+.8,surface+.4,z-2.2,.3,.8,.3,'#00e5ff');
+     }
+   }
+   if(phase===11){
+     deco(x,surface+.08,z-.7,1.1,.16,1.0,MODE==='race'?'#00e5ff':'#2fbf5b',0,5);
+     coin(x+(rnd(i,12)-.5)*1.0,surface+.75,z-1.45);
+     if(variant%4===0)deco(x,surface+.5,z-1.6,.22,1,.22,'#ffffff',0,0);
+   }
+   if(phase===0){
+     // Start/section pad and a visible marker. The floor itself is a real checkpoint.
+     deco(x,surface+.45,z,1.0,.9,1.0,'#ffffff',0,0);
+   }
+   if(MODE==='lava'&&phase===7)deco(x,surface+.4,z-1.4,.32,.8,.32,'#ff6b00',0,3);
+   if(MODE==='gravity'&&phase===1)deco(x,surface+.35,z-1.7,1.25,.25,1.25,'#9d4edd');
+   if(MODE==='water'&&phase===6)deco(x,surface+.1,z-.7,1.1,.2,1.1,'#00b4d8',0,4);
+   parts[i]=list;
+ }
+ function removeStage(i){const list=parts[i];if(!list)return;for(const obj of list){if(obj&&obj.isLadder)game.removeLadder(obj);else game.removeBlock(obj)}delete parts[i]}
+ game.setSpawn(0,.3,0);
+ game.onDie(()=>{deaths++});
+ for(;made<28;made++)makeStage(made);
+ game.say('🏁 Obby procedural: más de 1.500 combinaciones de tramo. W para avanzar, usa las escaleras y busca checkpoints verdes.');
+ game.onTick(()=>{
+   const idx=Math.max(0,Math.floor((-P.p.z-6)/STEP));
+   while(made<idx+29){makeStage(made);made++}
+   best=Math.max(best,idx);
+   for(const key in parts)if(+key<idx-15)removeStage(+key);
+   const encoded=(Math.max(0,idx)*37)%TOTAL_TYPES;
+   game.hud((MODE==='race'?'🏃':'🏁')+' Tramo '+best+' · Tipo '+(encoded+1)+'/'+TOTAL_TYPES+' · 🚩 '+Math.floor(best/12)*12+' · 💀 '+deaths+' · 🪙 '+game.coins());
+ });
+})();`;
+const OBBY_INFINITE_SCRIPT = mode => OBBY_SCRIPT_BASE.replace('__MODE__',mode);
+
 const DEF=[
-{id:'d1',n:'Parkour Infinito',h:'#parkour #escalada #infinito',lava:1,d:'Obby sin final con saltos, escaleras, plataformas móviles, vigas, túneles, trampolines, zonas estrechas y checkpoints cada 12 tramos.',gr:'#5c0a0a',b:[],sp:[0,.3,0],by:'Nixora',th:'linear-gradient(135deg,#ff6b35,#7b2cbf)',sc:`const P=game.player,R=i=>{const s=Math.sin(i*127.1+311.7)*43758.5453;return s-Math.floor(s)},pf={};
-let gen=0,best=0,deaths=0;
-const add=i=>{const phase=i%12,level=1+Math.floor(i/12)*2.2+(phase>=6?2.2:0),top=level,z=-6-i*4.5,x=Math.max(-8,Math.min(8,(R(i)-.5)*11)),w=phase===7?1.15:phase===0?4.2:2.5+R(i+9)*1.2;
- const list=[],color=phase===11?'#2fbf5b':'hsl('+((250+i*11)%360)+',72%,58%)';
- const addP=(b)=>list.push(game.addBlock(b));
- addP([x,top-.3,z,w,.6,phase===8?4.2:3,color]);
- if(phase===2){game.moveBlock(list[0],'x',2.5,1.2+R(i)*1.2);addP([x-3,top-.2,z-.8,1.3,.4,1.3,'#00e5ff'])}
- if(phase===3){addP([x+1.5,top+.15,z-2,1,.3,1,'#ff8fab']);addP([x-1.3,top+.3,z-4,1,.3,1,'#ffd166'])}
- if(phase===4){addP([x-1.15,top+.8,z, .35,1.6,2.5,'#e63946',1,1,'',0,0,3]);addP([x+1.15,top+.8,z,.35,1.6,2.5,'#e63946',1,1,'',0,0,3])}
- if(phase===5){const ladder=game.ladder(x,top,z-2.1,2.2);list.push(ladder);addP([x,top+1.9,z-4.1,3.6,.6,3,'#a8dadc'])}
- if(phase===6){addP([x,top+.9,z,.9,.5,.9,'#ff00aa',1,0,'',2,0,4])}
- if(phase===8){addP([x-1.35,top+1.45,z, .3,2.3,3,'#6c757d']);addP([x+1.35,top+1.45,z,.3,2.3,3,'#6c757d']);addP([x,top+2.65,z,3,.3,3,'#6c757d',1,0])}
- if(phase===9){addP([x,top+.35,z-2.2,1.3,.7,1.3,'#00e5ff']);addP([x,top+.7,z-3.9,1,.9,1,'#00e5ff'])}
- if(phase===10){addP([x,top+.6,z,.6,.6,.6,'#ffd166',1,0,'',2,0,6])}
- if(phase===11){addP([x,top+.9,z-1.5,.25,1.8,.25,'#ffffff',1,0]);addP([x+.55,top+2,z-1.5,1.2,.5,.1,'#2fbf5b',1,0]);}
- if(phase===0||phase===11){addP([x,top-.095,z,5,.25,5,'#2fbf5b',1,0,'',0,0,2])}
- pf[i]=list};
-game.setSpawn(0,.3,0);game.onDie(()=>{deaths++});
-for(;gen<26;gen++)add(gen);
-game.say('🏁 Obby infinito: salta, escala con W, cruza vigas, evita paredes rojas y usa checkpoints. ¡Cada tramo trae un reto distinto!');
-game.onTick(()=>{const i=Math.max(0,Math.floor((-P.p.z-6)/4.5));while(gen<i+28){add(gen);gen++}if(i>best){best=i;if(best%25===0)game.say('🏁 ¡Tramo '+best+'! Sigue avanzando.')}const cpI=Math.max(0,Math.floor(i/12)*12);for(const key in pf)if(+key<i-15){pf[key].forEach(o=>{if(o&&o.isLadder)game.removeLadder(o);else game.removeBlock(o)});delete pf[key]}game.hud('🏁 Tramo '+best+' · 🚩 '+cpI+' · 🪙 '+game.coins()+' · 💀 '+deaths+' · W en las escaleras')});`},
+{id:'d1',n:'Parkour Infinito',h:'#parkour #escalada #infinito',lava:1,d:'Obby sin final con saltos, escaleras, plataformas móviles, vigas, túneles, trampolines, zonas estrechas y checkpoints cada 12 tramos.',gr:'#5c0a0a',b:[],sp:[0,.3,0],by:'Nixora',th:'linear-gradient(135deg,#ff6b35,#7b2cbf)',sc:OBBY_INFINITE_SCRIPT('classic')},
 {id:'d2',n:'Isla Bloques',h:'#exploración',d:'Isla con ciclo de día y noche, animales, casita con tesoro, faro, estanque y 8 gemas escondidas.',gr:'#4cc26a',b:isla,by:'Nixora',th:'linear-gradient(135deg,#4cc26a,#1d6b3a)',sc:`const P=game.player,K=[];let n=0;
 for(let i=0;i<40;i++){const a=i*2.4,r=5+i%9;game.addBlock([Math.cos(a)*r,.15,Math.sin(a)*r,.3,.3,.3,['#ff6b6b','#ffd166','#ffffff'][i%3],1,0])}
 for(let i=0;i<8;i++){const a=i*.785+.3;K.push(game.addBlock([Math.cos(a)*10,.6,Math.sin(a)*10,.5,.5,.5,'#00e5ff',1,0]))}
@@ -215,18 +322,7 @@ game.onKill(()=>{alive--;kills++;game.sound('Explosión');if(!alive)setTimeout(s
 spawn();game.onTick(()=>game.hud('Oleada '+wv+' · Bajas '+kills+' · Enemigos '+alive));`},
 {id:'d5',n:'Laberinto Esmeralda',h:'#laberinto',d:'Un laberinto generado al azar. Encuentra las monedas escondidas y llega a la baldosa dorada del fondo.',gr:'#1b4332',b:maze,sp:[0,.05,0],by:'Nixora',th:'linear-gradient(135deg,#2d6a4f,#95d5b2)',sc:`game.say('🌿 Encuentra la salida dorada del laberinto.');game.onTick(()=>game.hud('🪙 '+game.coins()+' monedas'))`},
 {id:'d6',n:'Ciudad Neón',h:'#ciudad',d:'Una ciudad de neón de noche con trampolines para saltar a los techos, aceleradores en las avenidas y monedas en los edificios.',gr:'#0b0b1a',b:city,sp:[0,.05,7],st:{clock:22,clouds:0},by:'Nixora',th:'linear-gradient(135deg,#ff00aa,#00e5ff)',sc:`game.say('🌃 Usa los trampolines rosas y los aceleradores azules. ¡Junta las monedas!');game.onTick(()=>game.hud('🪙 '+game.coins()))`},
-{id:'d7',n:'Carrera de Obstáculos',h:'#obby #carrera #infinito',lava:1,d:'Carrera de obstáculos interminable con balancines, escaleras, pasarelas angostas, túneles, plataformas móviles, trampolines y checkpoints.',gr:'#5c0a0a',b:[],sp:[0,.3,0],by:'Nixora',th:'linear-gradient(135deg,#ff6b35,#2fbf5b)',sc:`const P=game.player,R=i=>{const a=Math.sin(i*91.7+17.3)*43758.5453;return a-Math.floor(a)},parts={};let n=0,best=0,deaths=0;
-function stage(i){const z=-6-i*5,x=Math.max(-10,Math.min(10,(R(i)-.5)*12)),phase=i%10,y=.9+Math.floor(i/10)*1.2,list=[];const put=b=>list.push(game.addBlock(b));
- put([x,y-.3,z,phase===4?1.1:phase===7?4.5:2.7,.6,3,phase===9?'#2fbf5b':'hsl('+((i*23)%360)+',78%,56%)']);
- if(phase===1){const moving=put([x+2,y-.15,z-2,1.7,.3,1.7,'#00e5ff']);game.moveBlock(moving,'x',3,1.6)}
- if(phase===2){put([x-.9,y+.5,z,.25,1,.3,'#e63946',1,1,'',0,0,3]);put([x+.9,y+.5,z,.25,1,.3,'#e63946',1,1,'',0,0,3]);put([x,y+1,z,.3,.25,3,'#e63946',1,1,'',0,0,3])}
- if(phase===3){const ladder=game.ladder(x,y,z-1.8,1.2);list.push(ladder);put([x,y+.9,z-3.8,3,.6,2,'#a8dadc'])}
- if(phase===4){put([x,y+.8,z,4,.25,.45,'#f1fa8c']);put([x,y+1.3,z-1.7,4,.25,.45,'#f1fa8c'])}
- if(phase===5){put([x-1.1,y+.6,z,.25,1.2,2.8,'#6c757d']);put([x+1.1,y+.6,z,.25,1.2,2.8,'#6c757d'])}
- if(phase===6){put([x,y+.8,z,.8,.6,.8,'#ff00aa',1,0,'',2,0,4])}
- if(phase===8){put([x,y+.35,z-2,.5,.5,.5,'#ffd166',1,0,'',2,0,6]);put([x+.7,y+.35,z-3,.5,.5,.5,'#ffd166',1,0,'',2,0,6])}
- if(phase===9){put([x,y+1.4,z,.25,2.8,.25,'#fff',1,0]);put([x+.5,y+2.7,z,1.2,.5,.1,'#2fbf5b',1,0]);put([x,y-.095,z,5,.25,5,'#2fbf5b',1,0,'',0,0,2])}parts[i]=list}
-game.setSpawn(0,.3,0);game.onDie(()=>deaths++);for(;n<30;n++)stage(n);game.say('🏃 Carrera infinita: avanza, escala con W cuando encuentres una escalera, y busca checkpoints verdes.');game.onTick(()=>{const i=Math.max(0,Math.floor((-P.p.z-6)/5));while(n<i+32){stage(n);n++}best=Math.max(best,i);for(const k in parts)if(+k<i-18){parts[k].forEach(o=>{if(o&&o.isLadder)game.removeLadder(o);else game.removeBlock(o)});delete parts[k]}game.hud('🏃 Tramo '+best+' · 🚩 '+Math.floor(best/10)*10+' · 💀 '+deaths+' · 🪙 '+game.coins())})`},
+{id:'d7',n:'Carrera de Obstáculos',h:'#obby #carrera #infinito',lava:1,d:'Carrera de obstáculos interminable con balancines, escaleras, pasarelas angostas, túneles, plataformas móviles, trampolines y checkpoints.',gr:'#5c0a0a',b:[],sp:[0,.3,0],by:'Nixora',th:'linear-gradient(135deg,#ff6b35,#2fbf5b)',sc:OBBY_INFINITE_SCRIPT('race')},
 {id:'d8',n:'Pueblo Medieval',h:'#pueblo',d:'Un pueblo con casas, pozo, bosque, animales y un castillo con tesoro en lo alto. Tiene ciclo de día y noche.',gr:'#4a7c3a',b:vil,by:'Nixora',th:'linear-gradient(135deg,#b08968,#4a7c3a)',sc:`game.say('🏘 Explora el pueblo y sube al castillo del norte.');for(let i=0;i<8;i++)game.mob(Math.cos(i)*14,Math.sin(i)*14,{peaceful:true,speed:1,size:.6+i%3*.15,color:['#ffffff','#f4a261','#8d99ae'][i%3]});`+DAYNIGHT+`game.onTick(()=>game.hud('🪙 '+game.coins()))`},
 {id:'d9',n:'Espacio Gravedad Baja',h:'#espacio',lava:1,d:'Plataformas flotantes en espiral con gravedad baja. Cae en el vacío de plasma y vuelves al checkpoint. Meta dorada arriba.',gr:'#2b1055',b:space,st:{grav:8,clock:0,clouds:0},by:'Nixora',th:'linear-gradient(135deg,#240046,#7b2cbf)',sc:`game.say('🚀 Gravedad baja: ¡salta lejos! Cuidado con el plasma.');game.onTick(()=>game.hud('⬆ '+game.player.p.y.toFixed(1)+' m · 🪙 '+game.coins()))`},
 {id:'d10',n:'Bosque Encantado',h:'#bosque',d:'Un bosque de noche con luciérnagas que son monedas, círculo de piedras y venados pacíficos. Busca el tesoro dorado en el centro.',gr:'#14301a',b:forest,st:{clock:21},by:'Nixora',th:'linear-gradient(135deg,#1b5e20,#b5ff4d)',sc:`game.say('🌲 Sigue las luciérnagas verdes.');for(let i=0;i<7;i++)game.mob(Math.cos(i*.9)*18,Math.sin(i*.9)*18,{peaceful:true,speed:1.2,size:.9,color:'#8d6e63'});game.onTick(()=>game.hud('✨ '+game.coins()+' luciérnagas'))`},
@@ -249,7 +345,135 @@ game.onKill(()=>{alive--;kills++;game.sound('Explosión');if(!alive){if(wv==10)g
 {id:'d25',n:'Archipiélago Celeste',h:'#islas #parkour',d:'Salta entre islas flotantes, junta estrellas y alcanza la isla suspendida entre nubes.',gr:'#87b9e8',b:cloudsMap,sp:[0,.2,0],st:{grav:16,clouds:1,sky:'#8ecae6'},by:'Nixora',th:'linear-gradient(135deg,#a8dadc,#4361ee)',sc:`game.say('☁️ Salta entre las islas celestes: algunas están más altas que otras.');game.onTick(()=>game.hud('⭐ Estrellas: '+game.coins()+' · Altura '+game.player.p.y.toFixed(1)))`},
 {id:'d26',n:'Mansión Embrujada',h:'#misterio #terror',d:'Investiga habitaciones oscuras, pasa por el cementerio y evita a las criaturas de la mansión.',gr:'#25212f',b:haunt,sp:[0,.2,8],st:{clock:23,clouds:0,sky:'#11101f',bright:.5},by:'Nixora',th:'linear-gradient(135deg,#312244,#5a189a)',sc:`game.sword();game.say('👻 Encuentra las reliquias y ten cuidado en los pasillos.');for(let i=0;i<6;i++)game.mob(Math.cos(i*1.05)*10,Math.sin(i*1.05)*10,{hp:35,size:.85,speed:1.4,dmg:5,color:'#8b5cf6'});game.onKill(()=>game.sound('Explosión'));game.onTick(()=>game.hud('🔮 Reliquias: '+game.coins()))`},
 {id:'d27',n:'Mina de Cristales',h:'#mina #exploracion',d:'Avanza por galerías rocosas, encuentra vetas luminosas y sigue las vías hacia la cámara final.',gr:'#46413c',b:mine,sp:[0,.2,0],st:{clock:16,clouds:0},by:'Nixora',th:'linear-gradient(135deg,#606c38,#00b4d8)',sc:`game.say('⛏️ Sigue los rieles, reúne cristales y encuentra la cámara profunda.');game.onTick(()=>game.hud('💎 Cristales: '+game.coins()+' · Profundidad '+Math.max(0,Math.floor(-game.player.p.z/3))))`},
-{id:'d28',n:'Cumbre del Dragón',h:'#montaña #jefe',d:'Sube un sendero de piedra por la montaña y enfréntate al dragón que custodia la cima.',gr:'#342b3d',b:dragon,sp:[0,.2,0],lava:1,st:{clock:20,clouds:0,sky:'#251d31'},by:'Nixora',th:'linear-gradient(135deg,#9d0208,#6a040f)',sc:`game.sword();let boss=null,done=false;game.say('🐉 Sube hasta la cumbre y prepárate para el guardián.');game.onTick(()=>{if(!boss&&game.player.p.y>6){boss=game.mob(0,-14,{hp:280,size:2.5,speed:2.1,dmg:15,color:'#c1121f'});game.say('🐉 ¡El dragón despierta!')}if(boss&&boss.dead&&!done){done=true;game.say('🏆 La cumbre es tuya.');game.sound('Victoria')}game.hud(boss?(boss.dead?'🏆 Dragón derrotado':'🐉 Vida del dragón: '+Math.max(0,boss.hp|0)):'⬆ Altura: '+game.player.p.y.toFixed(1))})`}];
+{id:'d28',n:'Cumbre del Dragón',h:'#montaña #jefe',d:'Sube un sendero de piedra por la montaña y enfréntate al dragón que custodia la cima.',gr:'#342b3d',b:dragon,sp:[0,.2,0],lava:1,st:{clock:20,clouds:0,sky:'#251d31'},by:'Nixora',th:'linear-gradient(135deg,#9d0208,#6a040f)',sc:`game.sword();let boss=null,done=false;game.say('🐉 Sube hasta la cumbre y prepárate para el guardián.');game.onTick(()=>{if(!boss&&game.player.p.y>6){boss=game.mob(0,-14,{hp:280,size:2.5,speed:2.1,dmg:15,color:'#c1121f'});game.say('🐉 ¡El dragón despierta!')}if(boss&&boss.dead&&!done){done=true;game.say('🏆 La cumbre es tuya.');game.sound('Victoria')}game.hud(boss?(boss.dead?'🏆 Dragón derrotado':'🐉 Vida del dragón: '+Math.max(0,boss.hp|0)):'⬆ Altura: '+game.player.p.y.toFixed(1))})`},
+{id:'d29',n:'Obby de Lava Infinito',h:'#obby #parkour #lava #infinito',d:'Circuito procedural de más de 1.500 combinaciones: saltos sobre lava, láseres, plataformas móviles, rampas y checkpoints.',gr:'#351c2d',b:[],sp:[0,.3,0],lava:1,st:{clock:19,clouds:0,sky:'#25131a'},by:'Nixora',th:'linear-gradient(135deg,#ff5400,#9d0208)',sc:OBBY_INFINITE_SCRIPT('lava')},
+{id:'d30',n:'Parkour de Escalada',h:'#obby #parkour #escalada #infinito',d:'Sube por escaleras obligatorias, cruza puentes altos y desciende por rampas construidas dinámicamente.',gr:'#31572c',b:[],sp:[0,.3,0],lava:1,st:{clock:14,sky:'#264653'},by:'Nixora',th:'linear-gradient(135deg,#588157,#c9a66b)',sc:OBBY_INFINITE_SCRIPT('climb')},
+{id:'d31',n:'Parkour Neón Infinito',h:'#parkour #obby #neon #infinito',d:'Carrera futurista con pasarelas brillantes, túneles, plataformas móviles, aceleradores y combinaciones que cambian por tramo.',gr:'#16102f',b:[],sp:[0,.3,0],lava:1,st:{clock:22,clouds:0,sky:'#120d2a'},by:'Nixora',th:'linear-gradient(135deg,#ff00aa,#00e5ff)',sc:OBBY_INFINITE_SCRIPT('neon')},
+{id:'d32',n:'Obby de Gravedad',h:'#obby #parkour #gravedad #infinito',d:'Circuito de saltos más flotantes con caminos estrechos, plataformas cambiantes y tramos de gravedad baja.',gr:'#24104f',b:[],sp:[0,.3,0],lava:1,st:{grav:14,clock:0,clouds:0,sky:'#17113b'},by:'Nixora',th:'linear-gradient(135deg,#4361ee,#7b2cbf)',sc:OBBY_INFINITE_SCRIPT('gravity')},
+{id:'d33',n:'Carrera Parkour Turbo',h:'#obby #parkour #carrera #velocidad #infinito',d:'Prueba contrarreloj con aceleradores, bloques móviles, puentes estrechos y checkpoints regulares.',gr:'#15232e',b:[],sp:[0,.3,0],lava:1,st:{walk:8.5,clock:21,clouds:0,sky:'#102033'},by:'Nixora',th:'linear-gradient(135deg,#00f5d4,#5a189a)',sc:OBBY_INFINITE_SCRIPT('race')},
+{id:'d34',n:'Parkour del Bosque Infinito',h:'#parkour #obby #bosque #aventura #infinito',d:'Un sendero aéreo entre plataformas de madera, puentes, troncos y retos que cambian continuamente.',gr:'#14301a',b:[],sp:[0,.3,0],lava:1,st:{clock:10,sky:'#1b4332'},by:'Nixora',th:'linear-gradient(135deg,#1b5e20,#95d5b2)',sc:OBBY_INFINITE_SCRIPT('forest')} ];
+
+/* ---------- Catálogo ampliado: 136 experiencias con mapas y objetivos propios ---------- */
+const NX_GAME_FAMILIES = [
+ {k:'obby',prefix:'Obby Infinito',tag:'#obby #parkour #infinito',desc:'Recorrido interminable con patrones de saltos, plataformas móviles, escaleras, túneles, aceleradores y checkpoints.',modes:['classic','lava','climb','neon','gravity','race','forest','water'],names:['Templo Volcánico','Bosque de Cristal','Rascacielos Neón','Glaciar Suspendido','Ruinas del Dragón','Tubos Cósmicos','Castillo de Lava','Islas Turbo'],colors:['#ff6b35','#00e5ff','#80ffdb','#ffd166']},
+ {k:'race',prefix:'Gran Premio',tag:'#carreras #parkour #velocidad',desc:'Circuito amplio con carriles, pórticos de control, saltos y aceleradores. Completa los sectores y vence tu tiempo.',names:['Costa Tropical','Neón Urbano','Cañón Rojo','Glaciar Azul','Puerto Espacial','Bosque Rally','Desierto Rally','Autopista Nocturna'],colors:['#00e5ff','#ffd166','#ff6b35','#2fbf71']},
+ {k:'tycoon',prefix:'Tycoon',tag:'#construcción #simulador',desc:'Explora un terreno de construcción, visita cuatro parcelas, reúne materiales y completa el circuito de expansión.',names:['Ciudad Flotante','Parque Acuático','Mega Fábrica','Estación Espacial','Hotel del Bosque','Puerto Pirata','Centro de Robots','Reino Dulce'],colors:['#6c5ce7','#00b4d8','#ffd166','#2fbf71']},
+ {k:'survival',prefix:'Supervivencia',tag:'#supervivencia #combate',desc:'Arena grande con suministros, zonas seguras y oleadas crecientes de enemigos humanoides. Sobrevive todo lo posible.',names:['Noche Zombi','Isla Salvaje','Refugio Glacial','Cráter de Lava','Metro Abandonado','Bosque Oscuro','Colonia Lunar','Ciudad en Ruinas'],colors:['#b7e4c7','#e63946','#495057','#ffd166']},
+ {k:'adventure',prefix:'Aventura',tag:'#aventura #exploración #misiones',desc:'Explora un mundo abierto con lugares secretos, NPCs, coleccionables, rutas elevadas y una meta de expedición.',names:['Templo Perdido','Archipiélago Dorado','Valle de los Gigantes','Frontera del Oeste','Jungla Esmeralda','Cañón de los Ecos','Islas de los Vientos','Montaña del Dragón'],colors:['#95d5b2','#e9c46a','#8d99ae','#00b4d8']},
+ {k:'maze',prefix:'Laberinto',tag:'#laberinto #puzzle #exploración',desc:'Laberinto transitable generado por semilla, con pasillos, bifurcaciones, reliquias y una salida claramente marcada.',names:['Jardín Esmeralda','Catacumbas Antiguas','Palacio de Hielo','Biblioteca Infinita','Minas de Cristal','Templo Solar','Jardín de Setos','Ruinas Subterráneas'],colors:['#2d6a4f','#6c757d','#a8dadc','#ffd166']},
+ {k:'roleplay',prefix:'Vida en',tag:'#roleplay #ciudad #social',desc:'Zona habitable con casas abiertas por puertas, plaza central, tiendas, caminos, vecinos NPC y pequeños encargos.',names:['Puerto Brillante','Villa del Roble','Ciudad Arcoíris','Pueblo Nevado','Costa Marina','Barrio Futurista','Aldea Medieval','Isla de Vacaciones'],colors:['#c9a66b','#90be6d','#90e0ef','#ff8fab']},
+ {k:'treasure',prefix:'Cazatesoros',tag:'#tesoros #colección #aventura',desc:'Mapa de expedición con cofres, monedas visibles, ruinas y una cámara del tesoro al final del camino.',names:['Pirámides Doradas','Naufragio Perdido','Cueva de Zafiros','Reino de Arena','Santuario del Sol','Bahía de los Piratas','Bosque de Reliquias','Luna de Oro'],colors:['#ffd166','#c9a66b','#00b4d8','#e9c46a']},
+ {k:'sport',prefix:'Desafío Deportivo',tag:'#deportes #carrera #parkour',desc:'Arena deportiva con carriles, estaciones de precisión, saltos, metas y cinco sectores para completar sin detenerse.',names:['Estadio Neón','Olimpiadas de Hielo','Circuito de Saltos','Arena Acuática','Pista de Montaña','Desafío de Globos','Estadio Cósmico','Copa del Bosque'],colors:['#00e5ff','#2fbf71','#ffd166','#ff8fab']},
+ {k:'dungeon',prefix:'Mazmorra',tag:'#combate #jefes #aventura',desc:'Fortaleza con pasillos y cámaras, enemigos humanoides, tesoros y una batalla contra un guardián al final.',names:['Rey de Ceniza','Cripta Violeta','Fortaleza Helada','Cámara Mecánica','Templo de Hueso','Cueva del Dragón','Torre Maldita','Núcleo de Lava'],colors:['#6d597a','#c1121f','#8d99ae','#ffd166']},
+ {k:'farm',prefix:'Granja',tag:'#granja #simulador #colección',desc:'Granja amplia con parcelas, granero, caminos, árboles y vecinos. Recoge las cosechas doradas repartidas por el mapa.',names:['Primavera Verde','Huerto Tropical','Granja Nevada','Valle de Calabazas','Isla de Frutas','Rancho del Oeste','Granja de Cristal','Jardín de Flores'],colors:['#7cae38','#90be6d','#f4d35e','#e07a5f']},
+ {k:'sky',prefix:'Islas Celestes',tag:'#obby #parkour #islas #altura',desc:'Ruta de plataformas flotantes con saltos largos, puentes aéreos, escaleras, estrellas y checkpoints sobre el vacío.',names:['Reino de las Nubes','Puentes del Sol','Órbita Violeta','Templo Celestial','Islas de Cristal','Camino del Cometa','Jardín Suspendido','Cumbre Arcoíris'],colors:['#a8dadc','#4361ee','#c77dff','#ffd166']},
+ {k:'underwater',prefix:'Aventura Submarina',tag:'#océano #exploración #nadar',desc:'Arrecife grande con barcos hundidos, cuevas de coral, perlas, vida NPC y rutas para explorar nadando.',names:['Arrecife Turquesa','Ciudad Sumergida','Trinchera Azul','Isla de las Perlas','Laboratorio Marino','Jardín de Medusas','Naufragio Ámbar','Reino de Coral'],colors:['#00b4d8','#48cae4','#80ffdb','#ff6b8a']},
+ {k:'escape',prefix:'Escape',tag:'#escape #parkour #misterio',desc:'Recorre un laberinto de pasillos y trampas, reúne llaves luminosas y llega a la puerta final mientras te persiguen NPC hostiles.',names:['Laboratorio Cerrado','Mansión Sombría','Prisión Robótica','Hotel Fantasma','Búnker Secreto','Nave Perdida','Museo de Medianoche','Túnel de Hielo'],colors:['#343a40','#6d597a','#e63946','#00b4d8']},
+ {k:'puzzle',prefix:'Puzzle de',tag:'#puzzle #lógica #exploración',desc:'Resuelve una ruta de runas por orden, cruza plataformas numeradas y alcanza la cámara de salida.',names:['Runas Antiguas','Luces de Neón','Cristales Musicales','Templo de Colores','Reloj Gigante','Puertas Mágicas','Código Espacial','Espejos del Bosque'],colors:['#9d4edd','#00e5ff','#ffd166','#2fbf71']},
+ {k:'defense',prefix:'Defensa',tag:'#defensa #oleadas #combate',desc:'Protege la base desde una arena abierta, usa la espada contra oleadas crecientes y derrota al jefe cada tercera oleada.',names:['Muralla del Reino','Estación Lunar','Puente de Lava','Puerto de Hielo','Ciudad Neón','Campamento del Bosque','Fortaleza Pirata','Refugio del Desierto'],colors:['#495057','#4361ee','#e63946','#ffd166']},
+ {k:'sky',prefix:'Parkour Aéreo',tag:'#obby #parkour #aéreo',desc:'Desafío vertical en islas altas con plataformas de tamaños distintos, vigas, escaleras y una meta en la cumbre.',names:['Torre del Trueno','Vía de los Cometas','Puentes Arcoíris','Rascacielos Flotante','Escalera de Cristal','Anillos Celestes','Cúpula del Viento','Torre de la Aurora'],colors:['#00e5ff','#ff8fab','#7b2cbf','#ffd166']}
+];
+function nxRand(seed,n){const v=Math.sin(seed*127.1+n*311.7+seed*n*.013)*43758.5453123;return v-Math.floor(v)}
+function nxBuildMap(seed,family,palette){
+ const a=[],put=(x,y,z,w,h,d,c,solid=1,flag=0,kind=0)=>box(a,x,y,z,w,h,d,c,1,solid,'',kind,1,flag),N=palette.length;
+ const col=i=>palette[(i%N+N)%N];
+ if(family==='obby')return a;
+ if(family==='sky'){
+  // No floor below the route: falling sends the player back to spawn.
+  put(0,1,.0,10,.6,10,col(0));
+  for(let i=0;i<38;i++){const x=Math.sin(seed*.31+i*.73)*(2.2+(i%4)*.7),z=-4.5-i*2.15,y=1.1+i*.43,w=2.8+(i%4)*.45;put(x,y,z,w,.55,2.8+(i%3)*.35,col(i+1),1,i%8===7?2:0);if(i%4===1)put(x+(i%2?1.7:-1.7),y+.2,z-1,.5,.4,.5,col(i+2),0,6,2);if(i%6===3)put(x,y+1.2,z,.18,1.8,.18,col(i+3))}
+  put(0,18,-87,8,.8,8,'#ffd166',1,2);return a;
+ }
+ if(family==='maze'||family==='escape'){
+  put(0,-.3,0,82,.6,82,col(0));
+  const size=13,cell=3, wallH=3,grid=Array.from({length:size},()=>Array.from({length:size},()=>({v:0,t:1,r:1,b:1,l:1}))),stack=[[0,0]];grid[0][0].v=1;
+  while(stack.length){const [r,c]=stack[stack.length-1],opts=[[r-1,c,'t','b'],[r,c+1,'r','l'],[r+1,c,'b','t'],[r,c-1,'l','r']].filter(([rr,cc])=>rr>=0&&cc>=0&&rr<size&&cc<size&&!grid[rr][cc].v);if(!opts.length){stack.pop();continue}const pick=opts[Math.floor(nxRand(seed,stack.length*7+r*17+c*5)*opts.length)],[rr,cc,side,op]=pick;grid[r][c][side]=0;grid[rr][cc][op]=0;grid[rr][cc].v=1;stack.push([rr,cc])}
+  for(let r=0;r<size;r++)for(let c=0;c<size;c++){const q=grid[r][c],x=(c-6)*cell,z=(6-r)*cell;if(q.t)put(x,1.5,z-cell/2,cell+.15,wallH,.28,col(r+c+seed));if(q.l)put(x-cell/2,1.5,z,.28,wallH,cell+.15,col(r+c+seed+1));if(r===size-1&&q.b)put(x,1.5,z+cell/2,cell+.15,wallH,.28,col(seed+c+2));if(c===size-1&&q.r)put(x+cell/2,1.5,z,.28,wallH,cell+.15,col(seed+r+3))}
+  // Entrance and exit markers make the objective easy to read.
+  put(-18,.22,18,1.4,.25,1.4,'#2fbf71',0,6,2);put(18,.22,-18,2,.35,2,'#ffd166',0,6,2);
+  for(let i=0;i<12;i++){const rr=1+Math.floor(nxRand(seed,i+300)*11),cc=1+Math.floor(nxRand(seed,i+500)*11),x=(cc-6)*cell,z=(6-rr)*cell;put(x,.85,z,.4,.4,.4,col(i+2),0,6,2)}
+  return a;
+ }
+ // Large explorable terrain with roads, a plaza, buildings and a clear landmark at the end of the main avenue.
+ put(0,-.3,0,112,.6,112,col(0));
+ put(0,.05,0,5,.1,88,'#6c757d');put(0,.05,-15,20,.1,5,'#6c757d');put(0,.05,15,20,.1,5,'#6c757d');put(-15,.05,0,5,.1,26,'#6c757d');put(15,.05,0,5,.1,26,'#6c757d');
+ put(0,.14,0,13,.28,13,col(1));put(0,.35,0,3,.42,3,col(2));put(0,.7,0,.9,.4,.9,'#ffd166',0,6,2);
+ if(family==='roleplay'||family==='tycoon'||family==='farm'){
+  [[-22,-18],[22,-18],[-22,18],[22,18]].forEach(([x,z],i)=>{house(a,x,z,col(i+2));put(x,.12,z+5,5,.24,3,col(i+1));put(x,.45,z+5,1,.5,1,'#ffd166',0,6,2)});
+ } else {
+  [[-21,-19],[21,-19],[-21,19],[21,19]].forEach(([x,z],i)=>{house(a,x,z,col(i+2))});
+ }
+ // Decorative trees stay clear of paths; trunks and crowns are visible pieces rather than a single giant cube.
+ for(let i=0;i<24;i++){const ang=i*2.399+seed*.17,r=28+(i%4)*3,x=Math.cos(ang)*r,z=Math.sin(ang)*r;if(Math.abs(x)<5||Math.abs(z)<5)continue;const h=2.4+nxRand(seed,i+800)*2;put(x,h/2,z,.45,h,.45,'#70452b');put(x,h+.5,z,2.4,1.5,2.4,[col(2),col(3),'#2d6a4f'][i%3],0);if(i%3===0)put(x+1,.3,z+.8,.7,.6,.7,'#b08968',0)}
+ // Lamps and park benches give the central streets scale and visual rhythm.
+ for(let i=0;i<8;i++){const x=(i%2?1:-1)*(8+Math.floor(i/2)*6),z=(i<4?-1:1)*(8+(i%4)*4);put(x,1.25,z,.16,2.5,.16,'#495057');put(x,2.55,z,.6,.28,.6,'#ffd166',0);if(i%2===0)put(x+1,.35,z,1.8,.35,.5,'#8d6e63')}
+ // Theme landmarks, each with walkable approaches and a goal at the far end.
+ if(family==='race'||family==='sport'){
+  for(let i=0;i<8;i++){const z=-6-i*5.5;put(0,.12,z,10,.24,4,i%2?'#343a40':'#495057');put(-5.25,.4,z,.25,.8,3,'#ffd166');put(5.25,.4,z,.25,.8,3,'#ffd166');if(i%2===0)put(0,.4,z,1,.12,3,'#00e5ff',0,5,0)}
+  for(let z of [-12,-28,-44]){put(-4,2.2,z,.5,4,.5,col(2));put(4,2.2,z,.5,4,.5,col(2));put(0,4.1,z,8.5,.5,.5,col(1))}
+ } else if(family==='farm'){
+  for(let r=0;r<5;r++)for(let c=0;c<7;c++){const x=-14+c*4,z=5+r*4;put(x,.18,z,2.5,.36,2.5,r%2?'#6f8f36':'#8fbf4d');put(x,.65,z,.55,.75,.55,['#f4d35e','#e07a5f','#90be6d'][c%3],0,6,2);if(c%2===0)put(x+1.3,.5,z,.25,.65,.25,'#4f772d')}
+  put(0,.5,-32,16,1,11,'#8d6e63');put(0,1.2,-32,17,.4,12,'#b23a48');
+ } else if(family==='tycoon'){
+  for(let i=0;i<4;i++){const x=i%2?-27:27,z=i<2?-29:29,h=4+i*2;put(x,h/2,z,8,h,8,col(i+1));for(let yy=1.4;yy<h;yy+=1.6)put(x,yy,z+4.1,4,.14,.1,'#00e5ff',0);put(x,h+.3,z,.9,.5,.9,'#ffd166',0,6,2)}
+ } else if(family==='underwater'){
+  for(let i=0;i<34;i++){const ang=i*2.399,r=6+(i%6)*4,x=Math.cos(ang)*r,z=Math.sin(ang)*r,h=1.4+(i%4)*.55;put(x,h/2,z,.6,h,.6,['#00b4d8','#ff6b8a','#80ffdb'][i%3]);if(i%3===0)put(x,h+.3,z,.4,.4,.4,'#ffd166',0,6,2)}
+  put(0,1,-18,14,1,5,'#70452b');put(0,2,-18,11,.8,3,'#8b5524');put(-3,3,-18,.35,4,.35,'#c9a66b');put(3,3,-18,.35,4,.35,'#c9a66b');
+ } else if(family==='dungeon'||family==='defense'||family==='survival'){
+  put(0,.2,-33,23,.4,17,'#495057');for(let x of [-11,11]){put(x,2,-33,1,4,17,col(1));for(let z of [-39,-33,-27])put(x,4.3,z,2,.6,2,col(2))}put(0,2,-41,12,4,1,col(2));
+ } else if(family==='puzzle'){
+  [[-9,-8],[0,-22],[9,-8],[0,-39]].forEach(([x,z],i)=>{put(x,.35,z,4,.7,4,col(i+1));put(x,.95,z,.6,.5,.6,'#ffffff',0,6,2)});
+ } else if(family==='adventure'||family==='treasure'){
+  put(0,.5,-34,16,1,12,'#8d6e63');for(let i=0;i<5;i++)put(-6+i*3,1.5,-39,.7,3,.7,col(i+2));put(0,2,-39,12,.5,2,'#c9a66b');put(0,2.65,-39,1,.8,1,'#ffd166',0,6,2);
+ } else if(family==='roleplay'){
+  put(0,.6,-30,7,1.2,7,'#8d99ae');put(0,1.3,-30,5,.2,5,'#00b4d8');for(let i=0;i<6;i++){const x=-10+i*4;put(x,.8,-8,1.1,1.6,.9,col(i+1));put(x,1.75,-8,1.35,.3,1.1,'#ffd166',0)}
+ } else {
+  put(0,.5,-33,16,1,12,col(2));for(let i=0;i<7;i++){const x=Math.sin(i*.9)*8,z=-8-i*4;put(x,.6,z,2.3,1.2,2.3,col(i+1));if(i%2===0)put(x,.65,z,.55,.55,.55,'#ffd166',0,6,2)}
+ }
+ // A clearly visible finish arch, connected to the main road.
+ put(-4,2,-47,.45,4,.45,'#ffd166');put(4,2,-47,.45,4,.45,'#ffd166');put(0,4,-47,8.5,.45,.45,'#ffd166');put(0,.5,-52,7,1,7,'#2fbf71');put(0,1.25,-52,.8,.5,.8,'#ffffff',0,6,2);
+ // Collectibles are deliberately aligned with streets and clearings, not hidden inside walls.
+ const spots=[[-8,-7],[8,-7],[-8,7],[8,7],[-28,0],[28,0],[0,27],[0,-24],[-29,-29],[29,-29],[-29,29],[29,29]];
+ spots.forEach(([x,z],i)=>put(x,.85,z,.42,.42,.42,col(i+2),0,6,2));
+ // Hazard strips and jump pads add optional challenge lanes to non-peaceful genres.
+ if(['race','sport','obby','defense'].includes(family)){for(let i=0;i<4;i++){const z=-12-i*8;put(i%2?-2:2,.16,z,1.1,.32,1.1,'#e63946',1,3);put(i%2?2:-2,.12,z-2,1.2,.24,1.2,'#00e5ff',1,5)}}
+ return a;
+}
+function nxBuildScript(family,seed,title,palette){
+ if(family==='obby'){
+  const modes=['classic','lava','climb','neon','gravity','race','forest','water'];let src=OBBY_INFINITE_SCRIPT(modes[seed%8]);
+  src=src.replace(`const MODE="${modes[seed%8]}", P=game.player, parts={};`,`const MODE="${modes[seed%8]}", P=game.player, parts={}, WORLD_SEED=${seed};`);
+  src=src.replace('const encoded=(i*37)%TOTAL_TYPES','const encoded=(i*37+WORLD_SEED*17)%TOTAL_TYPES');
+  src=src.replace('Math.sin((i+1)*127.1+(k+1)*311.7+(Math.floor(i/TOTAL_TYPES)+1)*74.7+MODE.charCodeAt(0)*19.19)','Math.sin((i+1)*127.1+(k+1)*311.7+(Math.floor(i/TOTAL_TYPES)+1)*74.7+MODE.charCodeAt(0)*19.19+WORLD_SEED*3.731)');
+  return src;
+ }
+ const T=JSON.stringify(title),C=JSON.stringify(palette),seedNum=Number(seed);
+ const common=`const P=game.player,C=${C};let elapsed=0;game.say(${T});for(let i=0;i<6;i++){const a=i*6.28318/6;game.mob(Math.cos(a)*(14+(i%2)*5),Math.sin(a)*(14+(i%2)*5),{peaceful:true,size:.78+(i%3)*.08,speed:.7,color:C[i%C.length]})}`;
+ if(['survival','defense','dungeon'].includes(family))return `${common}game.sword();let wave=0,alive=0,kills=0,next=0,finished=false;const spawnWave=()=>{if(wave>=12){finished=true;return}wave++;const boss=${family==='dungeon'?'wave%3===0':'wave%4===0'},n=boss?1:Math.min(8,2+wave);alive=n;for(let i=0;i<n;i++){const a=i/n*6.28318+(wave*.37),r=12+(i%3)*2;game.mob(Math.cos(a)*r,Math.sin(a)*r,{hp:boss?180+wave*25:28+wave*7,size:boss?2.0:.8+(i%3)*.12,speed:boss?2.35:1.35+Math.min(wave*.08,.9),dmg:boss?14:4+wave,color:boss?'#20202b':C[(i+wave)%C.length]})}game.say(boss?'👹 JEFE · Oleada '+wave:'⚔ Oleada '+wave+' · ¡Defiende el área!')};game.onKill(()=>{kills++;alive=Math.max(0,alive-1);if(!alive){if(wave>=12){finished=true;game.say('🏆 ¡Superaste las 12 oleadas!');game.sound('Victoria')}else next=elapsed+2.5}game.sound('Explosión')});spawnWave();game.onTick((dt)=>{elapsed+=dt;if(!alive&&next&&elapsed>=next){next=0;spawnWave()}game.hud((finished?'🏆 12 oleadas superadas':'🌊 Oleada '+wave)+' · 👾 Enemigos '+alive+' · Bajas '+kills+' · ⏱ '+(elapsed|0)+'s')});`;
+ if(family==='race'||family==='sport')return `${common}let sector=0,last=-1,finish=0;game.say('🏁 Sigue la pista hacia el arco dorado. Esquiva las barreras rojas y cruza los sectores en orden.');game.onTick((dt)=>{elapsed+=dt;sector=Math.max(0,Math.min(8,Math.floor((-P.p.z+3)/5.5)));if(sector>last){last=sector;if(sector>0)game.sound('Moneda')}if(P.p.z<-48&&!finish){finish=1;game.say('🏆 ¡Meta completada en '+elapsed.toFixed(1)+' segundos!');game.sound('Victoria')}game.hud('🏁 Sector '+sector+'/8 · ⏱ '+elapsed.toFixed(1)+' s · 🪙 '+game.coins()+(finish?' · ¡META!':''))});`;
+ if(family==='maze')return `${common}let done=false;game.say('🧭 Encuentra la salida dorada. Los pasillos cambian en cada experiencia; junta reliquias sin perder el camino.');game.onTick(()=>{if(!done&&Math.hypot(P.p.x-18,P.p.z+18)<2.8){done=true;game.say('🏆 ¡Encontraste la salida del laberinto!');game.sound('Victoria')}game.hud('🧩 Reliquias '+game.coins()+'/12 · '+(done?'🏆 Salida encontrada':'🧭 Busca la salida al noreste'))});`;
+ if(family==='escape')return `${common}let escaped=false;game.say('🚨 Reúne reliquias por el laberinto y escapa por la salida dorada. Hay guardianes hostiles en los pasillos.');for(let i=0;i<4;i++)game.mob((i%2?1:-1)*(7+(i%3)*3),(i<2?1:-1)*(7+(i%3)*3),{hp:45,size:1,speed:1.8+i*.1,dmg:7,color:'#6d597a'});game.onTick(()=>{if(!escaped&&Math.hypot(P.p.x-18,P.p.z+18)<2.8){escaped=true;game.say('🏆 ¡Escapaste!');game.sound('Victoria')}game.hud('🗝️ Fragmentos '+game.coins()+'/12 · '+(escaped?'🏆 ESCAPASTE':'Encuentra la salida'))});`;
+ if(family==='underwater')return `${common}game.water(0,2,0,100,5,100,false);game.say('🌊 Explora el arrecife y los restos del barco. Nada entre los corales y recoge perlas.');game.onTick(()=>{const depth=Math.max(0,Math.round(3-P.p.y));game.hud('🫧 Perlas '+game.coins()+'/12 · Profundidad '+depth+' m · Explora el barco hundido')});`;
+ if(family==='sky')return `${common}let record=0,done=false;game.say('☁️ Cruza las islas suspendidas; cada plataforma conduce a la siguiente. No te precipites y busca los cristales.');game.onTick(()=>{record=Math.max(record,P.p.y);if(!done&&P.p.y>15&&P.p.z<-72){done=true;game.say('🏆 ¡Llegaste a la cumbre celeste!');game.sound('Victoria')}game.hud('☁️ Altura '+record.toFixed(1)+' m · ⭐ '+game.coins()+'/12 · '+(done?'Cumbre conquistada':'Busca la siguiente isla'))});`;
+ if(family==='puzzle')return `${common}const runes=[[-9,0,-8],[0,0,-22],[9,0,-8],[0,0,-39]],seen=[false,false,false,false];let step=0,finished=false;game.say('🔷 Activa las cuatro runas luminosas en orden: oeste, norte, este y altar final.');game.onTick(()=>{const x=P.p.x,z=P.p.z;if(step<runes.length&&Math.hypot(x-runes[step][0],z-runes[step][2])<3){seen[step]=true;step++;game.sound('Moneda');game.say('🔷 Runa '+step+'/4 activada')}if(step===4&&!finished){finished=true;game.say('🏆 ¡Puzzle resuelto!');game.sound('Victoria')}game.hud('🔷 Runas '+step+'/4 · '+(finished?'🏆 Resuelto':'Sigue el orden de los cristales'))});`;
+ if(family==='roleplay')return `${common}const places=[[-22,-18],[22,-18],[-22,18],[22,18]],visited=[false,false,false,false];let visits=0;game.say('🏘️ Explora los cuatro barrios y visita a los vecinos. En cada casa hay un pequeño encargo.');game.onTick(()=>{places.forEach((q,i)=>{if(!visited[i]&&Math.hypot(P.p.x-q[0],P.p.z-q[1])<5){visited[i]=true;visits++;game.say('👋 Encargo vecinal '+visits+'/4 completado');game.sound('Moneda')}});game.hud('🏘️ Barrios visitados '+visits+'/4 · 🪙 '+game.coins())});`;
+ if(family==='tycoon')return `${common}const plots=[[-27,-29],[27,-29],[-27,29],[27,29]],built=[false,false,false,false];let level=0;game.say('🏗️ Recorre las cuatro parcelas de construcción para activar las fases del proyecto.');game.onTick(()=>{plots.forEach((q,i)=>{if(!built[i]&&Math.hypot(P.p.x-q[0],P.p.z-q[1])<5){built[i]=true;level++;game.addBlock([q[0]+5,1.2,q[1],4,2.4,4,C[(i+2)%C.length],1,1,'',0,0,0]);game.say('🏗️ Edificio '+level+'/4 construido');game.sound('Moneda')}});game.hud('🏗️ Proyecto '+level+'/4 · Materiales '+game.coins()+' · Visita cada parcela')});`;
+ if(family==='farm')return `${common}game.say('🌾 Recolecta los cultivos brillantes por las hileras y visita el granero al final del campo.');let harvest=0,finish=false;game.onTick(()=>{harvest=game.coins();if(!finish&&harvest>=10&&P.p.z<-27){finish=true;game.say('🏆 ¡Cosecha entregada!');game.sound('Victoria')}game.hud('🌽 Cosecha '+Math.min(harvest,10)+'/10 · '+(finish?'🏆 Pedido entregado':'Lleva la cosecha al granero'))});`;
+ if(family==='treasure')return `${common}game.say('💎 Busca los tesoros dorados repartidos por el mapa y llega al santuario al final de la avenida.');let reached=false;game.onTick(()=>{if(!reached&&game.coins()>=8&&P.p.z<-43){reached=true;game.say('🏆 ¡Tesoro recuperado y entregado!');game.sound('Victoria')}game.hud('💰 Tesoros '+game.coins()+'/12 · '+(reached?'🏆 Expedición completada':'Busca 8 tesoros y llega al santuario'))});`;
+ // Adventure: reach the final landmark; a humanoid guardian appears and must be defeated.
+ return `${common}game.sword();let boss=null,won=false;game.say('🗺️ Recorre los puntos de interés, reúne reliquias y alcanza el monumento dorado al final del camino.');game.onTick(()=>{if(!boss&&P.p.z<-30&&Math.abs(P.p.x)<12){boss=game.mob(0,-36,{hp:130+${seedNum%5}*20,size:1.8,speed:1.9,dmg:10,color:C[1]});game.say('🛡️ ¡Un guardián protege el monumento!')}if(boss&&boss.dead&&!won){won=true;game.say('🏆 ¡Aventura completada!');game.sound('Victoria')}game.hud('🗺️ Reliquias '+game.coins()+'/12 · '+(won?'🏆 Guardián derrotado':boss?'🛡️ Guardián '+Math.max(0,boss.hp|0):'Llega al monumento dorado'))});`;
+}
+const NX_GENERATED_GAMES=[];
+NX_GAME_FAMILIES.forEach((family,fi)=>family.names.forEach((variant,vi)=>{
+ const seed=fi*17+vi+11,palette=family.colors.map((c,i)=>{if(i===0)return c;return c});
+ const title=family.k==='roleplay'?family.prefix+' '+variant:family.k==='puzzle'?family.prefix+' '+variant:family.prefix+': '+variant;
+ const obby=family.k==='obby';
+ const blocks=nxBuildMap(seed,family.k,palette);
+ const isMaze=family.k==='maze'||family.k==='escape';
+ const sp=family.k==='sky'?[0,1.32,0]:isMaze?[-18,.2,18]:[0,.2,0];
+ NX_GENERATED_GAMES.push({id:'nxg'+String(seed).padStart(3,'0'),n:title,h:family.tag,d:family.desc+' Variante '+(vi+1)+' de 8, con distribución de obstáculos y decoración propia.',gr:palette[0],b:blocks,sp,st:family.k==='underwater'?{clock:13,grav:18,clouds:0,sky:'#168aad'}:family.k==='sky'?{grav:22,clouds:1,sky:'#8ecae6'}:family.k==='survival'||family.k==='escape'?{clock:22,clouds:0,sky:'#171421'}:{clock:14},by:'Nixora',th:`linear-gradient(135deg,${palette[0]},${palette[1]})`,sc:nxBuildScript(family.k,seed,title,palette),lava:obby||family.k==='sky',endless:obby,genre:family.k,themeSeed:seed});
+}));
+DEF.push(...NX_GENERATED_GAMES);
 
 /* ---------- Navegación ---------- */
 let HOME_FILTER='all';
@@ -272,7 +496,7 @@ function home(){PVU=null;ensureUser(me);const u=U[me],q=($('#q').value||'').trim
  }).sort((a,b)=>(b.feat|0)-(a.feat|0)),
  row=(t,l)=>`<h3>${t}</h3><div class="row">${l.map(card).join('')||'<i>Nada aún</i>'}</div>`,
  filters=[['all','Todos'],['fav','⭐ Favoritos'],['parkour','🏃 Parkour'],['adventure','🌎 Aventura'],['created','🛠 Mis mundos']];
- $('#main').innerHTML=`${ANN?`<div class="hero" style="background:#7a1f1f;margin-bottom:8px">📢 ${esc(ANN)}</div>`:''}<div class="hero" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div><h2 style="margin:0 0 6px">¡Hola, ${esc(me)}!</h2><small>Explora mundos, crea los tuyos y juega con tus amigos.</small><div style="margin-top:8px">${fr().filter(f=>U[f]&&!bl().includes(f)).slice(0,5).map(f=>`<span class="fr">👤 ${esc(f)}</span>`).join('')}</div></div><div id="pvh"></div></div><div class="rbar">${filters.map(([k,t])=>`<button class="${HOME_FILTER===k?'':'s'}" onclick="homeFilter('${k}')">${t}</button>`).join('')}<button onclick="go('missions')">🏆 Misiones</button><button class="s" onclick="go('profile')">👤 Mi perfil</button><button class="s" onclick="go('inventory')">🎒 Inventario</button></div>`+row(HOME_FILTER==='fav'?'Tus favoritos':HOME_FILTER==='created'?'Tus mundos':HOME_FILTER==='all'?'Recomendados':'Resultados',L)+row('Favoritos',[...all].filter(g=>u.favGames.includes(g.id)))+row('Más mundos para descubrir',all.filter(g=>!u.favGames.includes(g.id)).slice().reverse())+row('Creados por jugadores',all.filter(g=>g.by!== 'Nixora'));pvw()}
+ $('#main').innerHTML=`${ANN?`<div class="hero" style="background:#7a1f1f;margin-bottom:8px">📢 ${esc(ANN)}</div>`:''}<div class="hero" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div><h2 style="margin:0 0 6px">¡Hola, ${esc(me)}!</h2><small>Explora ${DEF.length+G.length} experiencias, crea mundos y juega con tus amigos.</small><div style="margin-top:8px">${fr().filter(f=>U[f]&&!bl().includes(f)).slice(0,5).map(f=>`<span class="fr">👤 ${esc(f)}</span>`).join('')}</div></div><div id="pvh"></div></div><div class="rbar">${filters.map(([k,t])=>`<button class="${HOME_FILTER===k?'':'s'}" onclick="homeFilter('${k}')">${t}</button>`).join('')}<button onclick="go('missions')">🏆 Misiones</button><button class="s" onclick="go('profile')">👤 Mi perfil</button><button class="s" onclick="go('inventory')">🎒 Inventario</button></div>`+row(HOME_FILTER==='fav'?'Tus favoritos':HOME_FILTER==='created'?'Tus mundos':HOME_FILTER==='all'?'Recomendados':'Resultados',L)+row('Favoritos',[...all].filter(g=>u.favGames.includes(g.id)))+row('Más mundos para descubrir',all.filter(g=>!u.favGames.includes(g.id)).slice().reverse())+row('Creados por jugadores',all.filter(g=>g.by!== 'Nixora'));pvw()}
 
 let CNT=null;
 async function cnt(id){try{const r=await fetch(cv('srv',SRV0).replace(/^ws/,'http')+'/count?g='+encodeURIComponent(id));return (await r.json()).n}catch(e){return 0}}
@@ -532,7 +756,7 @@ function play(id,roomCode='',createRoom=false){
  if(g.id==='d2')api.water(8,.7,-8,7,1.4,7,false);
  if(g.id==='d18'&&!waterZones.length)api.water(0,3,0,400,8,400,true);
  // Procedural outer world: each map extends using matching terrain and themed, walkable locations.
- const infiniteCourse=['d1','d7'].includes(g.id);
+ const infiniteCourse=['d1','d7'].includes(g.id)||!!g.endless;
  const hashRand=(a,b,i=0)=>{const n=Math.sin(a*127.1+b*311.7+i*74.7+String(g.id).split('').reduce((v,c)=>v+c.charCodeAt(0),0))*43758.5453;return n-Math.floor(n)};
  const groundColor=g.gr||'#4c956c';
  function makeProcBlock(block,list,visualOnly=false){if(block[8]!==0&&!visualOnly)B.push(block);if(block[12])RL.push(block);const mesh=addM(block);if(list)list.push(block);return mesh}

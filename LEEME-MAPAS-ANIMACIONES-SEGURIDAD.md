@@ -51,3 +51,7 @@ No hay ninguna llave administrativa escrita en el código del proyecto. La varia
 - La persistencia de las credenciales y sesiones ahora usa PostgreSQL, pero el perfil, los avatares, amigos, inventario y progreso general todavía no se sincronizan automáticamente entre dispositivos.
 - Los saldos administrativos `Dar / Quitar / Fijar saldo` se guardan en PostgreSQL, pero las compras, misiones y recompensas del juego todavía no están completamente trasladadas a la economía del servidor.
 - El diseño, el código generado y las animaciones se han revisado estáticamente, pero no se pudo ejecutar una partida real contra la instancia de PostgreSQL de Render desde este entorno. Antes de anunciarlo como verificado, prueba las funciones enumeradas arriba en un navegador y en dos sesiones separadas.
+
+
+ACTUALIZACIÓN DE OBBYS (octubre 2026)
+Consulta LEEME-OBBYS-INFINITOS.md para los 1.536 perfiles procedurales base por modo, los seis nuevos mundos obby/parkour y las instrucciones de prueba.
