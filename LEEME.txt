@@ -1,0 +1,6 @@
+NIXORA BLOX - cómo jugar con otras personas
+1) Instala Node.js (nodejs.org).
+2) En esta carpeta ejecuta:  npm install   y luego   node server.js
+3) Abre http://localhost:3000 (o la dirección de tu servidor) en cada dispositivo.
+Para jugar por internet, sube esta carpeta a un hosting con Node.js (Render, Railway, etc.).
+Sin servidor el juego funciona, pero solo.

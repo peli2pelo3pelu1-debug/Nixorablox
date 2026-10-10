@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nixora Blox</title><link rel="manifest" href="manifest.json"><meta name="theme-color" content="#7b2cbf"><link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="style.css"></head><body>
+<canvas id="bg"></canvas>
+<div id="auth"><div class="box"><div class="logo" style="font-size:2rem">Nixora Blox</div>
+<input id="u" placeholder="Usuario (8-15, sin espacios)" autocomplete="username" oninput="chk()"><small id="hint"></small><input id="pw" type="password" placeholder="Contraseña (8-15, sin espacios)" autocomplete="current-password">
+<p id="err"></p><button onclick="auth(0)">Iniciar sesión</button><button class="s" onclick="auth(1)">Registrarse</button></div></div>
+<div id="app" hidden>
+<header><span class="logo">Nixora Blox</span><nav id="nav"></nav><input id="q" placeholder="🔎 Buscar juegos" oninput="go('home')"><span id="wal" style="margin-left:auto"></span><span id="who"></span><button id="admbtn" class="s" hidden onclick="apOpen()">🛡 Admin (P)</button><button class="s" onclick="location.reload()">Salir</button></header>
+<aside id="side"></aside><main id="main"></main></div>
+<div id="play" hidden><canvas id="cv"></canvas>
+<div id="hud"><b id="gt"></b><div id="pl"></div><small id="fps"></small><small id="sc"></small><small id="hp"></small><small id="wl"></small><small>WASD mover · Espacio saltar · Shift agacharse · I/O zoom (1.ª persona) · Clic: mirar con el ratón (Esc suelta) · F: atacar · Esc: pausa / salir</small></div>
+<button id="ex" onclick="document.querySelector('#pm').hidden=false">☰ Menú</button><div id="joy"><div id="knob"></div></div><div id="dpad" aria-label="Controles de movimiento"><button id="upb">▲</button><div><button id="leftb">◀</button><button id="downb">▼</button><button id="rightb">▶</button></div></div><button id="jb">⤒</button><button id="cb">⇩</button><button id="ab">⚔</button><div id="pm" hidden><div class="box"><h2>Pausa</h2><button onclick="$('#pm').hidden=true">▶ Reanudar</button><button class="s" onclick="$('#pm').hidden=true;quit()">✖ Salir del juego</button></div></div>
+<div id="chat"><div id="log"></div><div class="r"><input id="ci" placeholder="Chat… prueba: sígueme, baila, chiste" autocomplete="off"><button id="vz" onclick="VOZ=!VOZ;this.textContent=VOZ?'🔊':'🔇'">🔊</button><button onclick="mic()">🎤</button></div></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="script.js"></script></body></html>

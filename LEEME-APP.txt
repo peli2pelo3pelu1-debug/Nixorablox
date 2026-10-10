@@ -1,0 +1,23 @@
+NIXORA BLOX - CÓMO OBTENER EL .EXE Y EL .APK
+(No pude generar los binarios aquí: no tengo internet ni el SDK de Android. Estos pasos los generan en tu computadora.)
+
+== EXE para Windows (Electron) ==
+1) Instala Node.js (nodejs.org).
+2) En esta carpeta:   npm install
+3) Probar la app:     npm run app
+4) Crear el instalador .exe:   npm run dist-win      (sale en la carpeta dist/)
+El juego carga el motor 3D (Three.js) desde internet, así que la app necesita conexión.
+
+== APK para Android ==
+Opción A (la más fácil, sin Android Studio): sube esta carpeta a un hosting con https (Netlify, Vercel, GitHub Pages, etc.),
+  entra a https://www.pwabuilder.com, pega tu dirección y elige «Android» para descargar el .apk.
+Opción B (Capacitor + Android Studio):
+  npm i @capacitor/core @capacitor/cli @capacitor/android
+  npx cap init "Nixora Blox" com.nixora.blox --web-dir .
+  npx cap add android
+  npx cap sync
+  npx cap open android      -> en Android Studio: Build > Build APK(s)
+Opción C (sin APK): abre la web en Chrome del celular y toca «Instalar app» / «Añadir a pantalla de inicio» (ya incluye manifest y service worker).
+
+== Multijugador ==
+node server.js  -> abre http://localhost:3000 (ver LEEME.txt).

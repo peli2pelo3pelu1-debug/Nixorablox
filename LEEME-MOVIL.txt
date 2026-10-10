@@ -1,0 +1,27 @@
+NIXORA BLOX - VERSION MOVIL (PWA) Y MULTIJUGADOR
+
+Cambios incluidos:
+- Controles táctiles con joystick predeterminado y botones direccionales alternativos.
+- Ajustes para cambiar el tipo y tamaño de los controles móviles.
+- Botón de menú durante la partida para reanudar o salir; Esc sigue funcionando en PC.
+- Sincronización de jugadores existentes al entrar a una sala, posición/rotación y nombre/rango visibles sobre los avatares.
+- Servidor compartido para jugadores de PC y móvil en la misma sala.
+
+PRUEBA LOCAL
+1. Instala Node.js LTS.
+2. Abre una terminal en esta carpeta.
+3. Ejecuta: npm install
+4. Ejecuta: npm start
+5. Abre http://localhost:3000 en PC y móvil. Para probar desde un móvil en la misma Wi-Fi, usa la IP local del PC, por ejemplo http://192.168.1.20:3000 (sustituye la IP por la real).
+
+IMPORTANTE MULTIJUGADOR POR INTERNET
+Para jugar desde redes distintas, despliega esta carpeta en un hosting que admita Node.js y WebSocket, configura HTTPS/WSS en el hosting y coloca la URL pública segura en Ajustes > Servidor. No se puede habilitar multijugador global sin un servidor accesible públicamente.
+
+INSTALAR EN EL MÓVIL
+Despliega el sitio con HTTPS. Abre la URL en Chrome/Edge del móvil y elige "Instalar aplicación" o "Añadir a pantalla de inicio". Es una PWA; este paquete no contiene un APK firmado.
+
+EXE PARA WINDOWS
+El proyecto conserva Electron. En una computadora con Node.js e internet:
+  npm install
+  npm run dist-win
+El instalador se genera en dist/. No se adjunta un EXE ya compilado en este paquete.

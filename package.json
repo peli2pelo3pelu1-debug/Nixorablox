@@ -1,0 +1,40 @@
+{
+ "name": "nixora-blox",
+ "version": "1.0.0",
+ "description": "Nixora Blox",
+ "author": "Nixora",
+ "main": "main.js",
+ "scripts": {
+  "start": "node server.js",
+  "app": "electron .",
+  "dist-win": "electron-builder --win nsis",
+  "dist-linux": "electron-builder --linux AppImage"
+ },
+ "dependencies": {
+  "ws": "^8.18.0"
+ },
+ "devDependencies": {
+  "electron": "^31.0.0",
+  "electron-builder": "^24.13.3"
+ },
+ "build": {
+  "appId": "com.nixora.blox",
+  "productName": "Nixora Blox",
+  "files": [
+   "index.html",
+   "style.css",
+   "script.js",
+   "manifest.json",
+   "sw.js",
+   "icon-*.png",
+   "main.js"
+  ],
+  "win": {
+   "target": "nsis",
+   "icon": "icon-512.png"
+  },
+  "directories": {
+   "output": "dist"
+  }
+ }
+}
