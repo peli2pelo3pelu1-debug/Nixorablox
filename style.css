@@ -164,3 +164,18 @@ body.touch #ex{min-width:48px;min-height:44px}
     height: 58px;
   }
 }
+
+
+/* Chat público plegable: el botón queda visible aunque el chat esté oculto. */
+#chat{z-index:8;display:block;max-width:calc(100vw - 20px)}
+#chatToggle{display:block;min-width:34px;min-height:32px;padding:2px 10px;margin-bottom:4px;font-size:22px;font-weight:800;line-height:1;border:1px solid #ffffff55;background:#39135b;box-shadow:0 2px 8px #0008}
+#chat.chat-hidden{width:auto;max-width:42px}
+#chat.chat-hidden #log,#chat.chat-hidden .r{display:none}
+#chat #log>div{margin:2px 0;overflow-wrap:anywhere}
+#chat .r input{min-width:0}
+#chat button:focus-visible,#chat input:focus-visible{outline:2px solid #e0aaff;outline-offset:2px}
+@media (pointer:coarse), (max-width:700px){
+  body.touch #chat{width:min(270px,64vw);max-width:64vw;z-index:8}
+  body.touch #chat.chat-hidden{width:auto;max-width:42px}
+  body.touch #chatToggle{min-width:38px;min-height:36px}
+}
