@@ -22,16 +22,17 @@ Esta actualización está basada en la versión anterior de Nixora Blox e intent
 En el Web Service de Nixora Blox → **Environment**, conserva:
 
 - `DATABASE_URL`: **Internal Database URL** de PostgreSQL.
-- `NIXORA_ADMIN_USER`: debe ser exactamente `ParaCraftero` para proteger esa cuenta con la llave de administración.
-- `NIXORA_ADMIN_KEY`: una llave privada generada por el propietario, con al menos 24 caracteres. No va en GitHub ni dentro de estos archivos.
+- `NIXORA_ADMIN_USER`: debe ser exactamente `ParaCraftero` para proteger esa cuenta.
+- `NIXORA_ADMIN_PASSWORD`: contraseña de inicio de sesión de ParaCraftero (usa entre 8 y 15 caracteres para coincidir con el formulario).
+- `NIXORA_ADMIN_KEY`: llave administrativa independiente, de al menos 24 caracteres; no va en GitHub ni dentro de estos archivos.
 
-No hay ninguna llave administrativa escrita en el código del proyecto. La variable `NIXORA_ADMIN_KEY` de Render es la única llave que debe usarse para iniciar sesión en `ParaCraftero` y consultar el historial protegido. Si la cambias en Render, al siguiente inicio se volverá a pedir cuando la llave anterior ya no sea válida.
+No hay secretos escritos en el código del proyecto. Para iniciar sesión en `ParaCraftero` se exigen dos comprobaciones separadas: la contraseña de cuenta `NIXORA_ADMIN_PASSWORD` en el formulario y la llave `NIXORA_ADMIN_KEY` cuando se solicita. Si cambias la llave en Render, se volverá a pedir en el siguiente inicio.
 
 ### Cómo funciona
 
 - Las credenciales nuevas se verifican en el servidor y se guardan en PostgreSQL mediante hash con sal; no se almacena la contraseña en texto plano.
 - Las cuentas antiguas que solo existían en un navegador se sincronizan cuando se inicia sesión correctamente desde ese navegador con la contraseña local que ya tenían. Después, esa cuenta puede autenticar en otro dispositivo con la contraseña sincronizada. Si nunca se sincronizó una cuenta antigua, el servidor no puede saber de forma fiable quién era su propietario histórico; inicia sesión primero desde el navegador original.
-- `ParaCraftero` queda excluida de ese sistema de contraseña normal y exige la llave `NIXORA_ADMIN_KEY` de Render.
+- `ParaCraftero` valida la contraseña configurada en `NIXORA_ADMIN_PASSWORD` y, además, exige `NIXORA_ADMIN_KEY` como segunda barrera. Una contraseña incorrecta debe rechazar el inicio de sesión.
 - El servidor reserva una sesión por nombre de usuario, guarda un latido cada 30 segundos y expira la reserva tras dos minutos sin latidos. Si la cuenta ya tiene una sesión activa, se muestra: **“Perdon, pero ya hay alguien jugando en esta cuenta. Por favor, vuelve más tarde.”** También se verifica la sesión antes de aceptar la conexión WebSocket del juego.
 - El botón **Salir** cierra la sesión del servidor. Si se cierra el navegador inesperadamente, el bloqueo se libera después de que expire la reserva.
 - **Configuración → Seguridad de cuenta** permite dar un nombre al dispositivo, activar opcionalmente la ubicación aproximada y consultar el historial desde la cuenta administradora. Por defecto no se comparte ubicación. Si se autoriza, las coordenadas se redondean a grados enteros antes de enviarse. El código de la aplicación no guarda ni lee la IP.

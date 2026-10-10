@@ -16,7 +16,8 @@ En Render abre el Web Service de Nixora Blox → **Environment** y añade:
 
 - `DATABASE_URL`: pega la **Internal Database URL** de `nixora-db`.
 - `NIXORA_ADMIN_USER`: el nombre exacto de la cuenta dueña autorizada (por defecto el proyecto usa `ParaCraftero`).
-- `NIXORA_ADMIN_KEY`: crea una clave privada aleatoria de al menos 24 caracteres. No uses una clave de ejemplo ni la pegues en GitHub o en el código. Guárdala porque el panel la pedirá al realizar ajustes económicos.
+- `NIXORA_ADMIN_PASSWORD`: contraseña de inicio de sesión de ParaCraftero, entre 8 y 15 caracteres para ajustarse al formulario.
+- `NIXORA_ADMIN_KEY`: una llave administrativa diferente, de al menos 24 caracteres. No la pegues en GitHub o en el código; el panel la pedirá para operaciones protegidas.
 
 Guarda los cambios y deja que Render complete el despliegue. `package.json` incorpora `pg`, así que Render instalará el cliente PostgreSQL al desplegar.
 

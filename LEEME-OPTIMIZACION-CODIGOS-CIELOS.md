@@ -2,7 +2,7 @@
 
 ## Catálogo y rendimiento
 
-El catálogo se simplificó a 106 experiencias oficiales integradas (34 originales y 72 nuevas), para reducir variantes repetitivas y la cantidad de tarjetas repetidas en la pantalla principal. Se conservan el sistema de mundos creados por jugadores y los ocho estilos de obby infinito del generador.
+El catálogo se simplificó a 124 experiencias oficiales integradas (34 originales y 90 nuevas), para reducir variantes repetitivas y la cantidad de tarjetas repetidas en la pantalla principal. Se conservan el sistema de mundos creados por jugadores y los ocho estilos de obby infinito del generador.
 
 La escena decorativa del menú usa menos geometría, renderizado más lento y pausa completa mientras hay una partida. El terreno adicional mantiene un anillo de 3 x 3 sectores y menos decoraciones por sector. Los dispositivos táctiles usan menor pixel ratio, sin sombras dinámicas y con menos nubes.
 
@@ -19,9 +19,9 @@ El catálogo contiene 80 gradientes: 20 paletas base con variaciones suave, viva
 
 ## Códigos promocionales
 
-La función usa cuatro rutas del servidor: `/api/codes/admin-list`, `/api/codes/admin-create`, `/api/codes/admin-toggle` y `/api/codes/redeem`. Los códigos, límites de canje, redenciones por cuenta y saldo de Nixdollars se guardan en PostgreSQL. Las credenciales se validan con la sesión activa del servidor; no se guardan códigos de administrador en los archivos.
+La función usa cinco rutas del servidor: `/api/codes/admin-list`, `/api/codes/admin-create`, `/api/codes/admin-edit`, `/api/codes/admin-delete` y `/api/codes/redeem`. Los códigos no expiran por tiempo: solo dejan de existir cuando ParaCraftero los elimina. El límite de canjes es opcional. Los códigos, ediciones, redenciones por cuenta y saldo de Nixdollars se guardan en PostgreSQL. Las credenciales se validan con la sesión activa del servidor; no se guardan códigos de administrador en los archivos.
 
-En Render, conserva `DATABASE_URL`, `NIXORA_ADMIN_USER` y `NIXORA_ADMIN_KEY`. La cuenta cuyo nombre coincide con `NIXORA_ADMIN_USER` obtiene el panel de administración de códigos. `NIXORA_ADMIN_KEY` debe permanecer secreta; si estuvo compartida, cámbiala por una nueva.
+En Render, conserva `DATABASE_URL`, `NIXORA_ADMIN_USER` y `NIXORA_ADMIN_KEY`, y añade `NIXORA_ADMIN_PASSWORD` para la contraseña de inicio de sesión de ParaCraftero (recomendado: 8–15 caracteres para coincidir con el formulario). La contraseña de cuenta y `NIXORA_ADMIN_KEY` son secretos distintos: el inicio exige ambos. No guardes ninguno en GitHub. Si una llave se compartió, sustitúyela por una nueva.
 
 ## Instalar
 

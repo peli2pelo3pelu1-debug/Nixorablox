@@ -243,3 +243,25 @@ body.touch #play.combat-mode #ab:not([hidden]){display:block!important;position:
 #ib{display:none}
 body.touch #play.interaction-mode #ib:not([hidden]){display:block!important;position:absolute;right:28px;bottom:calc(70px + env(safe-area-inset-bottom,0px));z-index:5;width:var(--btn-size,80px);height:var(--btn-size,80px);font-size:24px;touch-action:none;background:#168aad}
 body.touch #play.interaction-mode.combat-mode #ib:not([hidden]){right:120px}
+
+/* Modal de instrucciones de cada experiencia */
+#gameInstructions{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:18px;background:rgba(7,4,16,.78);backdrop-filter:blur(7px)}
+#gameInstructions[hidden]{display:none!important}
+#gameInstructions .game-help-card{position:relative;width:min(620px,96vw);max-height:min(82vh,820px);overflow:auto;padding:25px;border-radius:18px;color:#f7f1ff;background:linear-gradient(155deg,#221332,#120f20 70%);border:1px solid #8052a6;box-shadow:0 20px 70px #000a}
+#gameInstructions .game-help-close{position:sticky;float:right;top:0;width:36px;height:36px;min-width:36px;padding:0;border-radius:10px;background:#392349;border:1px solid #785294;color:#fff;font-size:18px}
+#gameInstructions .game-help-eyebrow{font-size:11px;letter-spacing:1.7px;font-weight:800;color:#ca9cff;margin-bottom:7px}
+#gameInstructions h2{font-size:clamp(22px,4vw,30px);margin:0 42px 12px 0;line-height:1.2}
+#gameInstructions p{line-height:1.55;color:#d4c8e4;margin:6px 0 12px}
+#gameInstructions section{background:#ffffff08;border:1px solid #ffffff18;border-radius:12px;padding:12px 14px;margin:10px 0}
+#gameInstructions section>b{color:#fff}
+#gameInstructions ul{margin:7px 0 0;padding-left:22px;color:#d4c8e4;line-height:1.6}
+#gameInstructions small{color:#aa99bd;overflow-wrap:anywhere}
+#gameInstructions .game-help-primary{width:100%;margin-top:14px;padding:12px 16px;border-radius:11px;background:linear-gradient(100deg,#8b35d0,#6332b5);font-weight:800;color:#fff;border:1px solid #ba88ed}
+#pm .box button{margin:4px 0}
+#main .promo-code-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:8px 0;padding:12px;border:1px solid #503563;background:#190f27;border-radius:10px}
+#main .promo-code-row>div:first-child{display:grid;gap:4px;min-width:150px}
+#main .promo-code-row small{color:#b8a9cc;line-height:1.4}
+#main .promo-code-actions{display:flex;gap:5px;flex-wrap:wrap}
+#main .promo-code-actions button{font-size:12px;padding:7px 9px}
+#main .promo-code-actions .danger{background:#652536;border-color:#a34b61;color:#fff}
+@media(max-width:600px){#gameInstructions{padding:8px}#gameInstructions .game-help-card{padding:18px;max-height:88vh}#main .promo-code-row{align-items:flex-start}#main .promo-code-actions{width:100%}}

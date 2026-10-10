@@ -82,6 +82,8 @@ async function initPromoSchema(){
    redeemed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), PRIMARY KEY(code,username_norm)
   )`);
   await economyPool.query('CREATE INDEX IF NOT EXISTS nixora_promo_codes_created ON nixora_promo_codes(created_at DESC)');
+  // Promotional codes do not expire by time; they remain until the owner deletes them.
+  await economyPool.query('UPDATE nixora_promo_codes SET expires_at=NULL, active=TRUE');
  })().catch(e=>{promoSchemaPromise=null;throw e});
  return promoSchemaPromise;
 }
@@ -115,11 +117,21 @@ async function logLoginEvent({username,device='Dispositivo desconocido',location
  await initAuthSchema();
  await economyPool.query('INSERT INTO nixora_login_events(username,username_norm,device_name,location_label,success,event_type,detail) VALUES($1,$2,$3,$4,$5,$6,$7)',[String(username||'Desconocido').slice(0,40),String(username||'').trim().toLowerCase().slice(0,80),cleanDevice(device),cleanLocation(location),!!success,String(type||'login').slice(0,20),String(detail||'').replace(/[\u0000-\u001f<>]/g,' ').slice(0,180)]);
 }
-function adminKeyMatches(req){
- const expected=String(process.env.NIXORA_ADMIN_KEY||''),given=String(req.headers['x-admin-key']||'');
- if(expected.length<24||!given)return false;
+function constantTimeTextMatches(expectedValue, givenValue){
+ const expected=String(expectedValue||''),given=String(givenValue||'');
+ if(!expected||!given)return false;
  const a=Buffer.from(expected),b=Buffer.from(given);
  return a.length===b.length&&crypto.timingSafeEqual(a,b);
+}
+function adminKeyMatches(req){
+ const expected=String(process.env.NIXORA_ADMIN_KEY||''),given=String(req.headers['x-admin-key']||'');
+ if(expected.length<24)return false;
+ return constantTimeTextMatches(expected,given);
+}
+// The owner must prove both the account password and the admin key. They are separate secrets.
+function ownerPasswordMatches(password){
+ const expected=String(process.env.NIXORA_ADMIN_PASSWORD||'');
+ return expected.length>=8&&constantTimeTextMatches(expected,String(password||''));
 }
 function adminAuthorized(req,actor){
  const owner=String(process.env.NIXORA_ADMIN_USER||'ParaCraftero').trim().toLowerCase();
@@ -137,9 +149,17 @@ const srv=http.createServer(async(q,r)=>{
    if(!name||!sid)return json(r,400,{ok:false,error:'La cuenta o el identificador de sesión no es válido.'});
    if(!economyPool)return json(r,503,{ok:false,error:'No se pudo comprobar la sesión porque PostgreSQL no está disponible.'});
    await initAuthSchema();
+   if(isOwnerName(name)&&String(process.env.NIXORA_ADMIN_PASSWORD||'').length<8){
+    await logLoginEvent({username:name,device,location,success:false,type:'login',detail:'Falta configurar la contraseña de cuenta del propietario'}).catch(()=>{});
+    return json(r,503,{ok:false,error:'Falta configurar NIXORA_ADMIN_PASSWORD en Render. Crea esa variable con la contraseña de la cuenta (de 8 a 15 caracteres) y vuelve a desplegar. Es distinta de NIXORA_ADMIN_KEY.'});
+   }
+   if(isOwnerName(name)&&!ownerPasswordMatches(d.password)){
+    await logLoginEvent({username:name,device,location,success:false,type:'login',detail:'Contraseña de cuenta incorrecta'}).catch(()=>{});
+    return json(r,401,{ok:false,error:'Contraseña de la cuenta ParaCraftero incorrecta. No se inició sesión.'});
+   }
    if(isOwnerName(name)&&!adminKeyMatches(q)){
     await logLoginEvent({username:name,device,location,success:false,type:'login',detail:'Falta la llave administrativa correcta'}).catch(()=>{});
-    return json(r,403,{ok:false,error:'Esta cuenta está protegida. Introduce la llave administrativa configurada en Render.'});
+    return json(r,403,{ok:false,error:'La contraseña es correcta, pero falta la llave administrativa configurada como NIXORA_ADMIN_KEY en Render.'});
    }
    if(!isOwnerName(name)){
     const credential=await verifyOrEnrollCredential(name,d.password,d.register===true,d.claimLegacy===true);
@@ -165,7 +185,7 @@ const srv=http.createServer(async(q,r)=>{
   if(q.method==='POST'&&url.pathname==='/api/auth/password/change'){
    const d=await readJson(q),name=safeUsername(d.username),sid=cleanSessionId(d.sessionId),oldPassword=String(d.oldPassword||''),newPassword=String(d.newPassword||'');
    if(!name||!sid)return json(r,400,{ok:false,error:'Sesión no válida.'});
-   if(isOwnerName(name))return json(r,403,{ok:false,error:'La cuenta ParaCraftero usa NIXORA_ADMIN_KEY en Render. Cambia esa llave desde Render, no desde esta pantalla.'});
+   if(isOwnerName(name))return json(r,403,{ok:false,error:'La contraseña de ParaCraftero se configura en Render con NIXORA_ADMIN_PASSWORD; NIXORA_ADMIN_KEY es una llave distinta.'});
    if(newPassword.length<8||newPassword.length>15||/\s|[<>]/.test(newPassword))return json(r,400,{ok:false,error:'La nueva contraseña debe tener entre 8 y 15 caracteres y no contener espacios ni < o >.'});
    await initAuthSchema();
    const active=await economyPool.query('SELECT 1 FROM nixora_account_sessions WHERE username_norm=$1 AND session_id=$2 AND expires_at>NOW()',[name.toLowerCase(),sid]);
@@ -274,15 +294,43 @@ const srv=http.createServer(async(q,r)=>{
     const c=out.rows[0];return json(r,201,{ok:true,code:c.code,reward:Number(c.reward),maxRedemptions:Number(c.max_redemptions),usedCount:Number(c.used_count),active:!!c.active,createdAt:c.created_at});
    }catch(e){if(e.code==='23505')return json(r,409,{ok:false,error:'Ya existe un código con ese nombre.'});throw e}
   }
-  if(q.method==='POST'&&url.pathname==='/api/codes/admin-toggle'){
-   const d=await readJson(q),actor=safeUsername(d.actor),sid=cleanSessionId(d.sessionId),code=String(d.code||'').trim().toUpperCase(),active=d.active===true;
-   if(!actor||!sid||!adminAuthorized(q,actor))return json(r,403,{ok:false,error:'Solo ParaCraftero puede activar o desactivar códigos.'});
+  if(q.method==='POST'&&url.pathname==='/api/codes/admin-edit'){
+   const d=await readJson(q),actor=safeUsername(d.actor),sid=cleanSessionId(d.sessionId),code=String(d.code||'').trim().toUpperCase(),newCode=String(d.newCode||code).trim().toUpperCase(),reward=Number(d.reward),maxRedemptions=Number(d.maxRedemptions||0);
+   if(!actor||!sid||!adminAuthorized(q,actor))return json(r,403,{ok:false,error:'Solo ParaCraftero puede editar códigos.'});
+   if(!/^[A-Z0-9_-]{3,32}$/.test(code)||!/^[A-Z0-9_-]{3,32}$/.test(newCode))return json(r,400,{ok:false,error:'El código debe contener entre 3 y 32 caracteres válidos.'});
+   if(!Number.isSafeInteger(reward)||reward<1||reward>1000000000)return json(r,400,{ok:false,error:'La recompensa debe ser un entero entre 1 y 1.000.000.000.'});
+   if(!Number.isSafeInteger(maxRedemptions)||maxRedemptions<0||maxRedemptions>1000000)return json(r,400,{ok:false,error:'El límite debe ser un entero entre 0 y 1.000.000 (0 = ilimitado).'});
+   await initPromoSchema();const client=await economyPool.connect();
+   try{
+    await client.query('BEGIN');
+    const valid=await client.query('SELECT 1 FROM nixora_account_sessions WHERE username_norm=$1 AND session_id=$2 AND expires_at>NOW()',[actor.toLowerCase(),sid]);
+    if(!valid.rowCount){await client.query('ROLLBACK');return json(r,409,{ok:false,error:'La sesión de administrador ha caducado. Vuelve a iniciar sesión.'});}
+    const old=await client.query('SELECT * FROM nixora_promo_codes WHERE code=$1 FOR UPDATE',[code]);
+    if(!old.rowCount){await client.query('ROLLBACK');return json(r,404,{ok:false,error:'No existe ese código.'});}
+    const c=old.rows[0];
+    if(maxRedemptions>0&&maxRedemptions<Number(c.used_count)){await client.query('ROLLBACK');return json(r,400,{ok:false,error:'El límite no puede ser menor que los canjes ya realizados; usa 0 para ilimitado.'});}
+    if(newCode!==code){
+     const dup=await client.query('SELECT 1 FROM nixora_promo_codes WHERE code=$1',[newCode]);
+     if(dup.rowCount){await client.query('ROLLBACK');return json(r,409,{ok:false,error:'Ya existe otro código con ese nombre.'});}
+     await client.query('INSERT INTO nixora_promo_codes(code,reward,max_redemptions,used_count,active,created_by,created_at,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,NULL)',[newCode,reward,maxRedemptions,Number(c.used_count),!!c.active,c.created_by,c.created_at]);
+     await client.query('UPDATE nixora_promo_redemptions SET code=$2 WHERE code=$1',[code,newCode]);
+     await client.query('DELETE FROM nixora_promo_codes WHERE code=$1',[code]);
+    }else{
+     await client.query('UPDATE nixora_promo_codes SET reward=$2,max_redemptions=$3,expires_at=NULL WHERE code=$1',[code,reward,maxRedemptions]);
+    }
+    await client.query('COMMIT');
+    return json(r,200,{ok:true,code:newCode,reward,maxRedemptions,usedCount:Number(c.used_count),message:'Código editado. No caduca por tiempo.'});
+   }catch(e){await client.query('ROLLBACK').catch(()=>{});throw e}finally{client.release()}
+  }
+  if(q.method==='POST'&&url.pathname==='/api/codes/admin-delete'){
+   const d=await readJson(q),actor=safeUsername(d.actor),sid=cleanSessionId(d.sessionId),code=String(d.code||'').trim().toUpperCase();
+   if(!actor||!sid||!adminAuthorized(q,actor))return json(r,403,{ok:false,error:'Solo ParaCraftero puede eliminar códigos.'});
    if(!/^[A-Z0-9_-]{3,32}$/.test(code))return json(r,400,{ok:false,error:'Código inválido.'});
    await initPromoSchema();const valid=await economyPool.query('SELECT 1 FROM nixora_account_sessions WHERE username_norm=$1 AND session_id=$2 AND expires_at>NOW()',[actor.toLowerCase(),sid]);
    if(!valid.rowCount)return json(r,409,{ok:false,error:'La sesión de administrador ha caducado. Vuelve a iniciar sesión.'});
-   const out=await economyPool.query('UPDATE nixora_promo_codes SET active=$2 WHERE code=$1 RETURNING code,active',[code,active]);
+   const out=await economyPool.query('DELETE FROM nixora_promo_codes WHERE code=$1 RETURNING code',[code]);
    if(!out.rowCount)return json(r,404,{ok:false,error:'No existe ese código.'});
-   return json(r,200,{ok:true,code:out.rows[0].code,active:!!out.rows[0].active});
+   return json(r,200,{ok:true,code:out.rows[0].code,message:'Código eliminado.'});
   }
   if(q.method==='POST'&&url.pathname==='/api/codes/redeem'){
    const d=await readJson(q),username=safeUsername(d.username),sid=cleanSessionId(d.sessionId),code=String(d.code||'').trim().toUpperCase();
