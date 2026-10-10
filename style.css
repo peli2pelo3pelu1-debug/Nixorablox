@@ -72,7 +72,7 @@ body.touch #dpad>div{display:flex;justify-content:center}
 body.touch.controls-buttons #joy{display:none}
 body.touch.controls-buttons #dpad{display:block}
 body.touch.controls-buttons #jb{width:var(--btn-size,54px);height:var(--btn-size,54px);font-size:22px}
-body.touch #jb,body.touch #cb,body.touch #ab{width:var(--btn-size,80px);height:var(--btn-size,80px);font-size:24px}
+body.touch #jb,body.touch #cb{width:var(--btn-size,80px);height:var(--btn-size,80px);font-size:24px}
 body.touch #ex{min-width:48px;min-height:44px}
 @media(max-width:700px){#hud{max-width:55vw;font-size:12px}#chat{width:min(260px,64vw)}}
 
@@ -235,3 +235,11 @@ body.touch #ex{min-width:48px;min-height:44px}
 .nx-studio-viewport{display:flex;flex-direction:column;min-width:0;overflow:hidden;background:#202a39;border:1px solid #394456;border-radius:8px;padding:7px}.nx-viewbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:7px;padding:4px 5px 8px;color:#f1f5f9;font-size:12px}.nx-viewbar small{font-size:10px;color:#b9c5d5}.nx-viewbar b{margin-left:8px;font-size:10px;font-weight:600;background:#303d50;border-radius:10px;padding:3px 7px;color:#dae5f2}.nx-stage{position:relative;flex:1;min-width:0;width:100%;min-height:390px;height:calc(100vh - 300px);max-height:920px;overflow:hidden;border:1px solid #4b5870;border-radius:7px;background:#9eabb9;touch-action:none;outline:none}.nx-stage:focus{border-color:#b18ae8;box-shadow:0 0 0 2px #9d4edd44}.nx-stage canvas{display:block!important;width:100%!important;max-width:none!important;height:100%!important;border-radius:0!important;outline:none}.nx-statusbar{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:7px 3px 1px;color:#b9c5d5;font-size:10px}.nx-studio-inspector .set:first-child{max-height:42vh!important}.nx-studio-inspector .set:nth-child(2){max-height:42vh!important}.nx-studio-inspector .ex{padding:4px 5px;border-radius:4px;font-size:11px;color:#dce6f2}.nx-studio-inspector .ex:hover{background:#344155}.nx-studio-inspector .ex.on{background:#4b3d68!important;color:#fff}.nx-studio-inspector input[type=number]{width:54px!important;margin:2px;padding:4px;font-size:11px}.nx-studio-inspector label{font-size:11px}.nx-studio-footer{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:3px 4px;color:#93a4b9;font-size:10px}.nx-studio-shell .play{background:#287d54}.nx-studio-shell .s{background:#344155}
 @media(max-width:1150px){.stg.nx-studio-grid{grid-template-columns:minmax(175px,220px) minmax(0,1fr)}.nx-studio-inspector{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;max-height:300px}.nx-studio-inspector .set:first-child,.nx-studio-inspector .set:nth-child(2){max-height:280px!important}.nx-stage{height:calc(100vh - 290px)}}
 @media(max-width:700px){.nx-studio-shell{padding:5px}.nx-studio-head{align-items:flex-start}.nx-studio-toolbar{justify-content:flex-start}.nx-studio-detailbar{max-height:150px}.stg.nx-studio-grid{grid-template-columns:minmax(0,1fr);min-height:0}.nx-studio-toolbox{max-height:290px}.nx-studio-viewport{grid-row:1}.nx-stage{height:54vh;min-height:300px;max-height:650px}.nx-studio-inspector{grid-column:auto;display:block;max-height:420px}.nx-studio-inspector .set:first-child,.nx-studio-inspector .set:nth-child(2){max-height:260px!important}.nx-viewbar small{width:100%}.nx-studio-footer{display:none}}
+
+
+/* Rendimiento y botones contextuales: espada solo en modos de combate. */
+body.touch #ab{display:none!important}
+body.touch #play.combat-mode #ab:not([hidden]){display:block!important;position:absolute;right:28px;bottom:calc(70px + env(safe-area-inset-bottom,0px));z-index:5;width:var(--btn-size,80px);height:var(--btn-size,80px);font-size:24px;touch-action:none}
+#ib{display:none}
+body.touch #play.interaction-mode #ib:not([hidden]){display:block!important;position:absolute;right:28px;bottom:calc(70px + env(safe-area-inset-bottom,0px));z-index:5;width:var(--btn-size,80px);height:var(--btn-size,80px);font-size:24px;touch-action:none;background:#168aad}
+body.touch #play.interaction-mode.combat-mode #ib:not([hidden]){right:120px}

@@ -65,6 +65,26 @@ async function initAuthSchema(){
  })().catch(e=>{authSchemaPromise=null;throw e});
  return authSchemaPromise;
 }
+let promoSchemaPromise=null;
+async function initPromoSchema(){
+ if(!economyPool)throw new Error('Falta DATABASE_URL o no se pudo iniciar PostgreSQL.');
+ await initEconomySchema();await initAuthSchema();
+ if(!promoSchemaPromise)promoSchemaPromise=(async()=>{
+  await economyPool.query(`CREATE TABLE IF NOT EXISTS nixora_promo_codes (
+   code TEXT PRIMARY KEY, reward BIGINT NOT NULL CHECK (reward > 0),
+   max_redemptions INTEGER NOT NULL DEFAULT 0 CHECK (max_redemptions >= 0),
+   used_count INTEGER NOT NULL DEFAULT 0 CHECK (used_count >= 0), active BOOLEAN NOT NULL DEFAULT TRUE,
+   created_by TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), expires_at TIMESTAMPTZ NULL
+  )`);
+  await economyPool.query(`CREATE TABLE IF NOT EXISTS nixora_promo_redemptions (
+   code TEXT NOT NULL REFERENCES nixora_promo_codes(code) ON DELETE CASCADE,
+   username_norm TEXT NOT NULL, username TEXT NOT NULL, reward BIGINT NOT NULL,
+   redeemed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), PRIMARY KEY(code,username_norm)
+  )`);
+  await economyPool.query('CREATE INDEX IF NOT EXISTS nixora_promo_codes_created ON nixora_promo_codes(created_at DESC)');
+ })().catch(e=>{promoSchemaPromise=null;throw e});
+ return promoSchemaPromise;
+}
 function scryptKey(password,salt){return new Promise((resolve,reject)=>crypto.scrypt(String(password),String(salt),64,(err,key)=>err?reject(err):resolve(key)))}
 async function verifyOrEnrollCredential(name,password,register,claimLegacy){
  const pass=String(password||'');
@@ -230,6 +250,81 @@ const srv=http.createServer(async(q,r)=>{
    await sendWalletToName(updated.username,updated.balance);
    return json(r,200,{ok:true,username:updated.username,balance:Number(updated.balance),updatedAt:updated.updated_at,message:'Saldo guardado en PostgreSQL.'});
   }
+  if(q.method==='GET'&&url.pathname==='/api/codes/admin-list'){
+   const actor=url.searchParams.get('actor')||'',sid=cleanSessionId(url.searchParams.get('sessionId'));
+   if(!sid||!adminAuthorized(q,actor))return json(r,403,{ok:false,error:'Solo ParaCraftero puede administrar los códigos. Revisa la llave de Render y vuelve a iniciar sesión.'});
+   await initPromoSchema();
+   const activeSession=await economyPool.query('SELECT 1 FROM nixora_account_sessions WHERE username_norm=$1 AND session_id=$2 AND expires_at>NOW()',[String(actor).toLowerCase(),sid]);
+   if(!activeSession.rowCount)return json(r,409,{ok:false,error:'La sesión de administrador ha caducado. Vuelve a iniciar sesión.'});
+   const out=await economyPool.query('SELECT code,reward,max_redemptions,used_count,active,created_by,created_at FROM nixora_promo_codes ORDER BY created_at DESC LIMIT 250');
+   return json(r,200,{ok:true,codes:out.rows.map(c=>({code:c.code,reward:Number(c.reward),maxRedemptions:Number(c.max_redemptions),usedCount:Number(c.used_count),active:!!c.active,createdBy:c.created_by,createdAt:c.created_at}))});
+  }
+  if(q.method==='POST'&&url.pathname==='/api/codes/admin-create'){
+   const d=await readJson(q),actor=safeUsername(d.actor),sid=cleanSessionId(d.sessionId),code=String(d.code||'').trim().toUpperCase(),reward=Number(d.reward),maxRedemptions=Number(d.maxRedemptions||0);
+   if(!actor||!sid)return json(r,400,{ok:false,error:'Cuenta o sesión inválida.'});
+   if(!adminAuthorized(q,actor))return json(r,403,{ok:false,error:'Solo ParaCraftero puede crear códigos. Comprueba la llave secreta de Render.'});
+   if(!/^[A-Z0-9_-]{3,32}$/.test(code))return json(r,400,{ok:false,error:'El código debe tener entre 3 y 32 letras, números, guiones o guiones bajos.'});
+   if(!Number.isSafeInteger(reward)||reward<1||reward>1000000000)return json(r,400,{ok:false,error:'La recompensa debe ser un entero entre 1 y 1.000.000.000.'});
+   if(!Number.isSafeInteger(maxRedemptions)||maxRedemptions<0||maxRedemptions>1000000)return json(r,400,{ok:false,error:'La cantidad máxima de canjes debe ser un entero entre 0 y 1.000.000.'});
+   await initPromoSchema();
+   const active=await economyPool.query('SELECT 1 FROM nixora_account_sessions WHERE username_norm=$1 AND session_id=$2 AND expires_at>NOW()',[actor.toLowerCase(),sid]);
+   if(!active.rowCount)return json(r,409,{ok:false,error:'La sesión de administrador ha caducado. Vuelve a iniciar sesión.'});
+   try{
+    const out=await economyPool.query('INSERT INTO nixora_promo_codes(code,reward,max_redemptions,created_by) VALUES($1,$2,$3,$4) RETURNING code,reward,max_redemptions,used_count,active,created_at',[code,reward,maxRedemptions,actor]);
+    const c=out.rows[0];return json(r,201,{ok:true,code:c.code,reward:Number(c.reward),maxRedemptions:Number(c.max_redemptions),usedCount:Number(c.used_count),active:!!c.active,createdAt:c.created_at});
+   }catch(e){if(e.code==='23505')return json(r,409,{ok:false,error:'Ya existe un código con ese nombre.'});throw e}
+  }
+  if(q.method==='POST'&&url.pathname==='/api/codes/admin-toggle'){
+   const d=await readJson(q),actor=safeUsername(d.actor),sid=cleanSessionId(d.sessionId),code=String(d.code||'').trim().toUpperCase(),active=d.active===true;
+   if(!actor||!sid||!adminAuthorized(q,actor))return json(r,403,{ok:false,error:'Solo ParaCraftero puede activar o desactivar códigos.'});
+   if(!/^[A-Z0-9_-]{3,32}$/.test(code))return json(r,400,{ok:false,error:'Código inválido.'});
+   await initPromoSchema();const valid=await economyPool.query('SELECT 1 FROM nixora_account_sessions WHERE username_norm=$1 AND session_id=$2 AND expires_at>NOW()',[actor.toLowerCase(),sid]);
+   if(!valid.rowCount)return json(r,409,{ok:false,error:'La sesión de administrador ha caducado. Vuelve a iniciar sesión.'});
+   const out=await economyPool.query('UPDATE nixora_promo_codes SET active=$2 WHERE code=$1 RETURNING code,active',[code,active]);
+   if(!out.rowCount)return json(r,404,{ok:false,error:'No existe ese código.'});
+   return json(r,200,{ok:true,code:out.rows[0].code,active:!!out.rows[0].active});
+  }
+  if(q.method==='POST'&&url.pathname==='/api/codes/redeem'){
+   const d=await readJson(q),username=safeUsername(d.username),sid=cleanSessionId(d.sessionId),code=String(d.code||'').trim().toUpperCase();
+   if(!username||!sid||!/^[A-Z0-9_-]{3,32}$/.test(code))return json(r,400,{ok:false,error:'El usuario, sesión o código no es válido.'});
+   await initPromoSchema();
+   const client=await economyPool.connect();let result=null,fail=null;
+   try{
+    await client.query('BEGIN');
+    const session=await client.query('SELECT 1 FROM nixora_account_sessions WHERE username_norm=$1 AND session_id=$2 AND expires_at>NOW() FOR UPDATE',[username.toLowerCase(),sid]);
+    if(!session.rowCount){fail={status:409,error:'Tu sesión no está activa. Vuelve a iniciar sesión.'};await client.query('ROLLBACK')}
+    else {
+     const found=await client.query('SELECT code,reward,max_redemptions,used_count,active,expires_at FROM nixora_promo_codes WHERE code=$1 FOR UPDATE',[code]);
+     if(!found.rowCount){fail={status:404,error:'Ese código no existe.'};await client.query('ROLLBACK')}
+     else {
+      const c=found.rows[0];
+      if(!c.active){fail={status:410,error:'Ese código está desactivado.'};await client.query('ROLLBACK')}
+      else if(c.expires_at&&new Date(c.expires_at).getTime()<=Date.now()){fail={status:410,error:'Ese código ha caducado.'};await client.query('ROLLBACK')}
+      else if(Number(c.max_redemptions)>0&&Number(c.used_count)>=Number(c.max_redemptions)){fail={status:410,error:'Se agotaron los canjes de ese código.'};await client.query('ROLLBACK')}
+      else {
+       const prior=await client.query('SELECT 1 FROM nixora_promo_redemptions WHERE code=$1 AND username_norm=$2',[code,username.toLowerCase()]);
+       if(prior.rowCount){fail={status:409,error:'Ya canjeaste este código con esta cuenta.'};await client.query('ROLLBACK')}
+       else {
+        await client.query('INSERT INTO nixora_wallets(username_norm,username,balance) VALUES($1,$2,0) ON CONFLICT(username_norm) DO NOTHING',[username.toLowerCase(),username]);
+        const wallet=await client.query('SELECT username,balance FROM nixora_wallets WHERE username_norm=$1 FOR UPDATE',[username.toLowerCase()]);
+        const before=Number(wallet.rows[0].balance),amount=Number(c.reward),after=before+amount;
+        if(!Number.isSafeInteger(after)||after>1000000000){fail={status:409,error:'El saldo máximo de Nixdollars se alcanzaría con esta recompensa.'};await client.query('ROLLBACK')}
+        else {
+         await client.query('UPDATE nixora_wallets SET username=$2,balance=$3,updated_at=NOW() WHERE username_norm=$1',[username.toLowerCase(),username,after]);
+         await client.query('INSERT INTO nixora_promo_redemptions(code,username_norm,username,reward) VALUES($1,$2,$3,$4)',[code,username.toLowerCase(),username,amount]);
+         await client.query('UPDATE nixora_promo_codes SET used_count=used_count+1 WHERE code=$1',[code]);
+         await client.query("INSERT INTO nixora_wallet_transactions(actor,target,action,amount,balance_before,balance_after) VALUES($1,$2,'add',$3,$4,$5)",['CODE:'+code,username,amount,before,after]);
+         await client.query('COMMIT');result={code,reward:amount,balance:after,username};
+        }
+       }
+      }
+     }
+    }
+   }catch(e){await client.query('ROLLBACK').catch(()=>{});if(e.code==='23505')fail={status:409,error:'Este código ya fue canjeado por esta cuenta.'};else throw e}finally{client.release()}
+   if(fail)return json(r,fail.status,{ok:false,error:fail.error});
+   if(result){await sendWalletToName(result.username,result.balance);return json(r,200,{ok:true,code:result.code,reward:result.reward,balance:result.balance})}
+   return json(r,500,{ok:false,error:'No se pudo canjear el código.'});
+  }
   if(q.method==='GET'&&url.pathname==='/players'){
    const list=[...P.values()].map(p=>({n:p.n,g:p.room?(p.world+' (sala privada)'):p.world,world:p.world,private:!!p.room,rank:p.rank}));return json(r,200,{players:list});
   }
@@ -245,18 +340,34 @@ const wss=new WebSocketServer({server:srv}),P=new Map();let nid=1;
 const bc=(me,m)=>{const s=JSON.stringify(m);for(const p of P.values())if(p!==me&&p.g==me.g&&p.ws.readyState==1)p.ws.send(s)};
 wss.on('connection',ws=>{const id=nid++;
  ws.on('message',async raw=>{let d;try{d=JSON.parse(raw)}catch{return}
-  if(d.t=='join'){const n=String(d.n||'').replace(/[^\w-]/g,'').slice(0,16),world=String(d.world||d.g||'').slice(0,80),room=String(d.room||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,12),g=room?world+'::'+room:world,sid=cleanSessionId(d.sessionId);
+  if(d.t==='join'){
+   const n=String(d.n||'').replace(/[^\w-]/g,'').slice(0,16),world=String(d.world||d.g||'').slice(0,80),room=String(d.room||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,12),g=room?world+'::'+room:world,sid=cleanSessionId(d.sessionId);
    if(!safeUsername(n)||!world||!sid||!economyPool){ws.send(JSON.stringify({t:'chat',n:'Servidor',m:'No se pudo verificar tu sesión. Vuelve a iniciar sesión.'}));return ws.close(1008,'Sesión no válida')}
    try{await initAuthSchema();const valid=await economyPool.query('SELECT 1 FROM nixora_account_sessions WHERE username_norm=$1 AND session_id=$2 AND expires_at>NOW()',[n.toLowerCase(),sid]);if(!valid.rowCount){ws.send(JSON.stringify({t:'chat',n:'Servidor',m:'No se pudo verificar tu sesión. Vuelve a iniciar sesión.'}));return ws.close(1008,'Sesión no válida')}}catch(err){console.error('No se pudo validar sesión WebSocket:',err.message);ws.send(JSON.stringify({t:'chat',n:'Servidor',m:'No se pudo verificar tu sesión con PostgreSQL.'}));return ws.close(1011,'Validación fallida')}
-   if([...P.values()].some(p=>p.n.toLowerCase()==n.toLowerCase())){ws.send(JSON.stringify({t:'chat',n:'Servidor',m:'Perdon, pero ya hay alguien jugando en esta cuenta. Por favor, vuelve más tarde.'}));return ws.close(1008,'Cuenta ocupada')}
+   if([...P.values()].some(p=>p.n.toLowerCase()===n.toLowerCase())){ws.send(JSON.stringify({t:'chat',n:'Servidor',m:'Perdon, pero ya hay alguien jugando en esta cuenta. Por favor, vuelve más tarde.'}));return ws.close(1008,'Cuenta ocupada')}
    if(room&&!d.owner&&!([...P.values()].some(p=>p.world===world&&p.room===room))){ws.send(JSON.stringify({t:'chat',n:'Servidor',m:'No existe una sala privada con ese código. Comprueba el código con tu amigo.'}));return ws.close()}
-   const me={ws,n,g,world,room,av:d.av||{},rank:String(d.rank||'').slice(0,40),x:0,y:0,z:0,ry:0,sp:0,cr:0};
+   const pvp=!!d.pvp,duelMembers=[...P.entries()].filter(([otherId,p])=>otherId!==id&&p.g===g&&p.pvp);
+   if(pvp&&duelMembers.length>=2){ws.send(JSON.stringify({t:'chat',n:'Arena',m:'Esta arena ya tiene dos jugadores. Busca otra partida 1 contra 1.'}));return ws.close(1008,'Arena completa')}
+   const side=pvp?(duelMembers.length?(duelMembers[0][1].side===1?2:1):1):0;
+   const me={ws,n,g,world,room,av:d.av||{},rank:String(d.rank||'').slice(0,40),x:0,y:0,z:0,ry:0,sp:0,cr:0,pvp,side,hp:100,kos:0,lastAttack:0,won:false};
    P.set(id,me);
    if(economyPool){readWallet(me.n).then(w=>{if(w&&ws.readyState===1)ws.send(JSON.stringify({t:'wallet',username:me.n,balance:Number(w.balance)}))}).catch(e=>console.error('No se pudo cargar la billetera al entrar:',e.message))}
-   for(const [otherId,p] of P){if(otherId!==id&&p.g===me.g&&p.ws.readyState===1){ws.send(JSON.stringify({t:'st',id:otherId,n:p.n,av:p.av,rank:p.rank,x:p.x,y:p.y,z:p.z,ry:p.ry,sp:p.sp,cr:p.cr}));p.ws.send(JSON.stringify({t:'st',id,n:me.n,av:me.av,rank:me.rank,x:me.x,y:me.y,z:me.z,ry:me.ry,sp:me.sp,cr:me.cr}));}}
-   return}
+   for(const [otherId,p] of P){if(otherId!==id&&p.g===me.g&&p.ws.readyState===1){ws.send(JSON.stringify({t:'st',id:otherId,n:p.n,av:p.av,rank:p.rank,x:p.x,y:p.y,z:p.z,ry:p.ry,sp:p.sp,cr:p.cr}));p.ws.send(JSON.stringify({t:'st',id,n:me.n,av:me.av,rank:me.rank,x:me.x,y:me.y,z:me.z,ry:me.ry,sp:me.sp,g:me.g,cr:me.cr}));}}
+   if(pvp){const duel=[...P.values()].filter(p=>p.g===me.g&&p.pvp);if(duel.length===1)ws.send(JSON.stringify({t:'duelWaiting'}));else if(duel.length===2){duel[0].ws.send(JSON.stringify({t:'duelStart',side:duel[0].side,opponent:duel[1].n}));duel[1].ws.send(JSON.stringify({t:'duelStart',side:duel[1].side,opponent:duel[0].n}))}}
+   return;
+  }
   const me=P.get(id);if(!me)return;
-  if(d.t=='st'){me.x=Number.isFinite(+d.x)?+d.x:me.x;me.y=Number.isFinite(+d.y)?+d.y:me.y;me.z=Number.isFinite(+d.z)?+d.z:me.z;me.ry=Number.isFinite(+d.ry)?+d.ry:me.ry;me.sp=Number.isFinite(+d.sp)?+d.sp:0;me.cr=+d.cr?1:0;bc(me,{t:'st',id,n:me.n,av:me.av,rank:me.rank,x:me.x,y:me.y,z:me.z,ry:me.ry,sp:me.sp,g:me.g,cr:me.cr});}
-  if(d.t=='chat')bc(me,{t:'chat',n:me.n,m:clean(d.m)})});
- ws.on('close',()=>{const me=P.get(id);if(me){bc(me,{t:'bye',id});P.delete(id)}})});
+  if(d.t==='st'){me.x=Number.isFinite(+d.x)?Math.max(-10000,Math.min(10000,+d.x)):me.x;me.y=Number.isFinite(+d.y)?Math.max(-1000,Math.min(1000,+d.y)):me.y;me.z=Number.isFinite(+d.z)?Math.max(-10000,Math.min(10000,+d.z)):me.z;me.ry=Number.isFinite(+d.ry)?+d.ry:me.ry;me.sp=Number.isFinite(+d.sp)?+d.sp:0;me.cr=+d.cr?1:0;bc(me,{t:'st',id,n:me.n,av:me.av,rank:me.rank,x:me.x,y:me.y,z:me.z,ry:me.ry,sp:me.sp,g:me.g,cr:me.cr})}
+  if(d.t==='attack'){
+   if(!me.pvp||me.won||Date.now()-me.lastAttack<450)return;
+   const tid=Number(d.targetId),target=P.get(tid);if(!target||target===me||!target.pvp||target.g!==me.g||target.won||target.ws.readyState!==1)return;
+   const dx=me.x-target.x,dy=me.y-target.y,dz=me.z-target.z;if(dx*dx+dy*dy+dz*dz>5.5*5.5)return;
+   me.lastAttack=Date.now();target.hp=Math.max(0,target.hp-25);target.ws.send(JSON.stringify({t:'combatHit',hp:target.hp,attacker:me.n}));
+   if(target.hp<=0){me.kos++;target.kos=0;target.hp=100;me.hp=100;target.ws.send(JSON.stringify({t:'combatRespawn',kos:target.kos,side:target.side}));me.ws.send(JSON.stringify({t:'combatKO',target:target.n,kos:me.kos,winner:me.kos>=3}));if(me.kos>=3){me.won=true;target.won=true;target.ws.send(JSON.stringify({t:'matchOver',winner:me.n}))}}
+   return;
+  }
+  if(d.t==='chat')bc(me,{t:'chat',n:me.n,m:clean(d.m)});
+ });
+ ws.on('close',()=>{const me=P.get(id);if(me){bc(me,{t:'bye',id});P.delete(id);if(me.pvp)for(const p of P.values())if(p.g===me.g&&p.pvp&&p.ws.readyState===1)p.ws.send(JSON.stringify({t:'duelWaiting'}))}})
+});
 srv.listen(PORT,()=>console.log('Nixora Blox listo en http://localhost:'+PORT));

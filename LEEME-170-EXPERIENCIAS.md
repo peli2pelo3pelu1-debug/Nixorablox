@@ -1,29 +1,43 @@
-NIXORA BLOX — CATÁLOGO AMPLIADO DE EXPERIENCIAS
+NIXORA BLOX — CATÁLOGO OPTIMIZADO DE EXPERIENCIAS
 
 CONTENIDO
 - 34 juegos originales conservados.
-- 136 experiencias nuevas en el catálogo, para un total de 170 juegos oficiales antes de contar los mundos publicados por jugadores.
-- Las experiencias agregadas incluyen 8 obbys infinitos temáticos; carreras; tycoons de construcción; supervivencia por oleadas; aventura y expedición; laberintos; roleplay de ciudades; búsqueda de tesoros; desafíos deportivos; mazmorras con jefes; granjas; islas celestes; exploración submarina; juegos de escape; puzzles de runas y modos de defensa.
-- Los juegos agregados tienen identificadores y nombres distintos, semilla de mapa propia, paleta temática, objetivo y script de juego.
+- 72 experiencias procedurales nuevas elegidas para reducir duplicados: 106 juegos oficiales antes de contar los mundos publicados por jugadores.
+- Familias: obbys infinitos, carreras, tycoons, supervivencia por oleadas, aventuras, laberintos, roleplay, tesoros, deportes, mazmorras, granjas, islas celestes, exploración submarina, escapes, puzzles, defensa y duelos 1 contra 1.
+- Los 72 modos nuevos cuentan con IDs distintos, variación de semilla, paletas temáticas y scripts asociados. Comparten el motor 3D para reducir duplicación y mantener los mismos controles.
 
-MAPAS Y SISTEMAS
-- Los mapas normales tienen terreno amplio, caminos, plaza, casas, árboles, faroles, puntos de interés y coleccionables.
-- Los mapas de laberinto y escape usan pasillos generados por una semilla con entrada y salida. Los obbys infinitos crean nuevas secciones a medida que el jugador avanza y retiran secciones antiguas para limitar el uso de memoria.
-- Los modos de carrera tienen sectores y meta; los de granja y tesoro permiten recoger elementos; roleplay tiene encargos por barrios; los puzzles tienen runas en orden; los modos de supervivencia, mazmorra y defensa generan oleadas y jefes.
-- Los NPC se crean con el sistema de personajes humanoides de estilo Minecraft ya presente en Nixora Blox: hay NPC pacíficos y enemigos hostiles según el modo.
-- En el modo aéreo, caer del recorrido reinicia al punto de aparición. En el modo submarino se activa una zona de agua para explorar nadando.
-- El filtro «Parkour» encuentra experiencias con hashtags #obby y/o #parkour.
+RENDIMIENTO Y MAPAS
+- Se redujo el número de tarjetas duplicadas de la página principal.
+- El fondo animado del menú se pausa durante las partidas y limita su refresco a aproximadamente 30 FPS.
+- En el mundo procedural se generan menos decoraciones por sector y solo se mantiene un anillo cercano de 3 x 3 sectores.
+- En dispositivos táctiles, el juego limita la resolución de renderizado, apaga las sombras dinámicas y reduce nubes; estas opciones reducen carga gráfica, pero el rendimiento depende del equipo y del navegador.
+- Los obbys infinitos crean tramos mientras se avanza y eliminan tramos antiguos para limitar el uso de memoria.
+
+CIELOS
+- Hay 80 presets de gradiente basados en 20 paletas, cada una con variaciones suave, viva y clara.
+- Se pueden elegir en los detalles de un juego y en Studio → Lighting. El guardado de un juego de Studio incluye el preset seleccionado.
+
+MODOS DESTACADOS
+- Tycoon: cuatro parcelas con compras de mejoras e ingresos por segundo de juego.
+- Supervivencia/defensa/mazmorra: oleadas limitadas con enemigos humanoides y jefes.
+- Duelo 1 contra 1: empareja dos usuarios dentro del mismo mundo, valida distancia y cadencia de los ataques en el servidor y termina al llegar a tres derribos. Es un sistema inicial, no un anticheat completo.
+- Los NPC se crean con el sistema humanoide de estilo skin de Minecraft ya existente.
+- El botón táctil de espada solo se muestra cuando el script del juego activa el sistema de combate. El botón Interactuar aparece únicamente en los juegos que lo solicitan.
+
+CÓDIGOS PROMOCIONALES
+- La sección Códigos permite a una cuenta canjear códigos creados en el servidor; una cuenta solo puede canjear cada código una vez.
+- Solo la cuenta configurada en NIXORA_ADMIN_USER (por defecto ParaCraftero) puede crear, activar o desactivar códigos. La recompensa en Nixdollars, límite de canjes y saldo se validan en PostgreSQL.
+- La llave no está escrita en los archivos. Debe estar guardada en Render como NIXORA_ADMIN_KEY junto con DATABASE_URL. No compartas esos valores.
 
 INSTALACIÓN
 1. Descomprime el ZIP.
-2. Abre la carpeta nixora-mobile.
-3. Sube el contenido de esa carpeta a la raíz del repositorio de GitHub conectado a Render; no crees una carpeta duplicada nixora-mobile/nixora-mobile.
-4. Espera a que Render termine el despliegue y muestre Live.
-5. Recarga la web con Ctrl+F5. El caché de la app también se versionó para que el navegador pueda descargar los archivos actualizados.
-6. Entra a algunos modos de cada familia y prueba controles, checkpoints, coleccionables, enemigos, salida y meta.
-7. Si tu APK contiene los archivos del juego empaquetados localmente, debes crear un APK nuevo. Si solo abre la web, prueba primero la web actualizada.
+2. Sube el contenido de la carpeta nixora-mobile a la raíz del repositorio de GitHub conectado a Render (sin anidar otra carpeta nixora-mobile).
+3. Espera que Render marque Live.
+4. Recarga la web con Ctrl+F5. También se cambió el nombre del caché del service worker para pedir los archivos nuevos.
+5. Entra primero a Códigos y prueba crear un código con un límite pequeño; canjéalo con otra cuenta una sola vez y comprueba el saldo de servidor. Después prueba un tycoon y un duelo con dos cuentas diferentes.
+6. Si tu APK lleva una copia local de los archivos, genera e instala una APK nueva. Si solo abre la web publicada, prueba la web primero.
 
-ALCANCE Y VALIDACIÓN
-- Las 136 experiencias son mapas distintos generados por código a partir de varias familias de diseño, con semillas, distribuciones y objetivos diferentes. No son 136 niveles dibujados manualmente y no tienen 136 motores independientes: comparten el motor 3D y varios sistemas para mantener controles y animaciones consistentes.
-- Se comprobó la sintaxis de script.js y server.js, que hay 136 IDs y nombres nuevos únicos, que cada script de juego se compila y que las funciones de inicio y un callback HUD por modo se ejecutan con un API simulado.
-- Esta prueba automática no sustituye una partida real con WebGL, dispositivos móviles, conexión multijugador o física completa. Conviene probar los mapas después de desplegar y corregir cualquier salto, colisión o NPC que se comporte mal.
+VALIDACIÓN Y LÍMITES
+- Se comprueba la sintaxis de los archivos script.js y server.js, y se compilan mediante prueba automática los scripts procedurales nuevos. También se comprueban los IDs generados y las 80 paletas.
+- No fue posible ejecutar una partida real en WebGL ni conectarse a la base PostgreSQL de Render desde este entorno. Por eso hay que probar en la web publicada: saltos y colisiones, interacción del tycoon, matchmaking y golpes 1v1, y el flujo completo de códigos.
+- Reducir objetos y renderizado ayuda con el lag, pero no se puede garantizar cero lag en todos los dispositivos. Si persiste, el siguiente paso es perfilar el juego en el navegador/dispositivo donde ocurre.
