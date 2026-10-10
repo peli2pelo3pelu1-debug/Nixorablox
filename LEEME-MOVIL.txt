@@ -50,3 +50,12 @@ MEJORAS DE ESTA VERSION
 
 LIMITES
 Las cuentas, amistades, mensajes, progreso, inventario y misiones se guardan en el navegador (localStorage). No se sincronizan todavía entre dispositivos. El código de sala privada debe compartirse directamente con los amigos.
+
+
+NIXORA STUDIO AMPLIADO (editor web propio)
+- Vista 3D más grande con Toolbox a la izquierda, Explorer y Propiedades a la derecha.
+- Cámara: W/A/S/D para mover el punto de vista; Q/E para bajar/subir; Shift para moverse más rápido; rueda para zoom; arrastrar la vista para orbitar.
+- Insertar/seleccionar/mover/borrar/duplicar, escalar con botones, rotar en pasos de 15 grados o introducir los ángulos en Propiedades, color/material, agrupación, deshacer/rehacer, importar/exportar y Probar juego.
+- Toolbox incluye un panel de Terreno para generar pradera, colinas, islas o terreno volcánico y quitar piezas generadas.
+- El catálogo incluido tiene 28 mundos predeterminados con escenarios y objetivos distintos.
+- Este editor se inspira en flujos comunes de herramientas 3D; no es una copia exacta ni incluye todas las funciones internas de Roblox Studio.
