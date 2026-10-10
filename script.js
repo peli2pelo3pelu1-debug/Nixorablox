@@ -826,6 +826,85 @@ function play(id,roomCode='',createRoom=false){
  let k={},yaw=0,pitch=.4,dist=cv('dist',8),follow=cv('11_1',true),bj=0,dr=0,hooks=[],raf,last=performance.now(),t=0,fc=0,ft=0,dn_=0,ns=0,cid=0,px=0,py=0,touchPts=new Map(),pinchD=0,jumpLatch=false,mobs=[],atk=0,hasSword=0,kf=null,stp=0,boost=0,coins=0,won=0,kd2=null,nds=[],ndT=3,JI=0,duelKO=0,duelSide=0;
  const lava=g.lava||S.lava,RL=g.b.filter(b=>b[12]),sb=g.b.find(b=>b[12]==1),SP=sb?[sb[0],sb[1]+sb[4]/2+.05,sb[2]]:(g.sp?[...g.sp]:[0,lava?.25:.05,0]);
  const waterZones=[],waterMeshes=[],ladderZones=[],movingBlocks=[],procChunks=new Map();
+ // Navegación de NPC: buscan rutas alrededor de obstáculos sólidos y escalan solo si no encuentran una ruta.
+ const NAV_STEP=1.25,NAV_RADIUS=.34;
+ const navObstaclesBetween=(a,b,pad=13)=>{
+  const minX=Math.min(a.x,b.x)-pad,maxX=Math.max(a.x,b.x)+pad,minZ=Math.min(a.z,b.z)-pad,maxZ=Math.max(a.z,b.z)+pad;
+  return B.filter(q=>{if(q[8]===0)return false;const bottom=q[1]-q[4]/2,top=q[1]+q[4]/2;
+   // Los obstáculos bajos son escalones transitables; solo se marcan piezas que bloquean el cuerpo.
+   return top>1.02&&bottom<1.9&&q[0]+q[3]/2+NAV_RADIUS>=minX&&q[0]-q[3]/2-NAV_RADIUS<=maxX&&q[2]+q[5]/2+NAV_RADIUS>=minZ&&q[2]-q[5]/2-NAV_RADIUS<=maxZ;
+  });
+ };
+ const navSegmentHit=(a,b,obs)=>{
+  const dx=b.x-a.x,dz=b.z-a.z;let best=null;
+  for(const q of obs){let lo=0,hi=1,valid=true;
+   for(const [pos,delta,center,half] of [[a.x,dx,q[0],q[3]/2+NAV_RADIUS],[a.z,dz,q[2],q[5]/2+NAV_RADIUS]]){
+    if(Math.abs(delta)<1e-7){if(pos<center-half||pos>center+half){valid=false;break}}
+    else{let t1=(center-half-pos)/delta,t2=(center+half-pos)/delta;if(t1>t2){const tmp=t1;t1=t2;t2=tmp}lo=Math.max(lo,t1);hi=Math.min(hi,t2);if(lo>hi){valid=false;break}}
+   }
+   if(valid&&hi>=0&&lo<=1&&hi>.015){const enter=Math.max(0,lo);if(!best||enter<best.enter)best={b:q,enter,exit:Math.min(1,hi)};}
+  }
+  return best;
+ };
+ const navFindPath=(start,target,obs)=>{
+  const step=NAV_STEP,pad=10.5,minX=Math.floor((Math.min(start.x,target.x)-pad)/step)*step,minZ=Math.floor((Math.min(start.z,target.z)-pad)/step)*step,
+   maxX=Math.ceil((Math.max(start.x,target.x)+pad)/step)*step,maxZ=Math.ceil((Math.max(start.z,target.z)+pad)/step)*step,
+   cols=Math.min(48,Math.floor((maxX-minX)/step)+1),rows=Math.min(48,Math.floor((maxZ-minZ)/step)+1),N=cols*rows;
+  const clamp=(v,max)=>Math.max(0,Math.min(max-1,v)),id=(x,z)=>z*cols+x,ix=p=>p%cols,iz=p=>(p/cols)|0,
+   sx=clamp(Math.round((start.x-minX)/step),cols),sz=clamp(Math.round((start.z-minZ)/step),rows),tx=clamp(Math.round((target.x-minX)/step),cols),tz=clamp(Math.round((target.z-minZ)/step),rows),startId=id(sx,sz),goalId=id(tx,tz);
+  if(startId===goalId)return [];
+  const blocked=new Uint8Array(N);
+  for(const q of obs){const extX=q[3]/2+NAV_RADIUS+step*.28,extZ=q[5]/2+NAV_RADIUS+step*.28;
+   let x0=clamp(Math.floor((q[0]-extX-minX)/step),cols),x1=clamp(Math.ceil((q[0]+extX-minX)/step),cols),z0=clamp(Math.floor((q[2]-extZ-minZ)/step),rows),z1=clamp(Math.ceil((q[2]+extZ-minZ)/step),rows);
+   for(let z=z0;z<=z1;z++)for(let x=x0;x<=x1;x++){const wx=minX+x*step,wz=minZ+z*step;if(Math.abs(wx-q[0])<=extX&&Math.abs(wz-q[2])<=extZ)blocked[id(x,z)]=1;}
+  }
+  // Siempre se permite salir de la celda actual y llegar a la celda del objetivo.
+  blocked[startId]=0;blocked[goalId]=0;
+  const scores=new Float32Array(N),prev=new Int32Array(N),closed=new Uint8Array(N);scores.fill(Infinity);prev.fill(-1);scores[startId]=0;
+  const heapIds=[],heapFs=[];
+  const push=(v,f)=>{let i=heapIds.length;heapIds.push(v);heapFs.push(f);while(i>0){const par=(i-1)>>1;if(heapFs[par]<=f)break;heapIds[i]=heapIds[par];heapFs[i]=heapFs[par];i=par}heapIds[i]=v;heapFs[i]=f};
+  const pop=()=>{const out=[heapIds[0],heapFs[0]],v=heapIds.pop(),f=heapFs.pop();if(heapIds.length){let i=0;while(true){let c=i*2+1;if(c>=heapIds.length)break;if(c+1<heapIds.length&&heapFs[c+1]<heapFs[c])c++;if(heapFs[c]>=f)break;heapIds[i]=heapIds[c];heapFs[i]=heapFs[c];i=c}heapIds[i]=v;heapFs[i]=f}return out};
+  const heuristic=(v)=>{const dx=Math.abs(ix(v)-tx),dz=Math.abs(iz(v)-tz);return Math.max(dx,dz)+.41421356*Math.min(dx,dz)};
+  push(startId,heuristic(startId));let found=false,iterations=0;
+  const dirs=[[1,0,1],[-1,0,1],[0,1,1],[0,-1,1],[1,1,1.414],[-1,1,1.414],[1,-1,1.414],[-1,-1,1.414]];
+  while(heapIds.length&&iterations++<N*2){const [curId]=pop();if(closed[curId])continue;closed[curId]=1;if(curId===goalId){found=true;break}
+   const cx=ix(curId),cz=iz(curId);
+   for(const [ax,az,cost] of dirs){const nx=cx+ax,nz=cz+az;if(nx<0||nz<0||nx>=cols||nz>=rows)continue;const ni=id(nx,nz);if(blocked[ni]||closed[ni])continue;
+    if(ax&&az&&(blocked[id(cx+ax,cz)]||blocked[id(cx,cz+az)]))continue;
+    const ns=scores[curId]+cost;if(ns<scores[ni]){scores[ni]=ns;prev[ni]=curId;push(ni,ns+heuristic(ni));}
+   }
+  }
+  if(!found)return null;const path=[];let cur=goalId,guard=0;while(cur!==startId&&cur>=0&&guard++<N){path.push({x:minX+ix(cur)*step,z:minZ+iz(cur)*step});cur=prev[cur]}if(cur!==startId)return null;path.reverse();return path;
+ };
+ const navMoveFlat=(agent,x,z,dt,speed)=>{const dx=x-agent.p.x,dz=z-agent.p.z,d=Math.hypot(dx,dz);if(d<.025)return d;const step=Math.min(d,Math.max(0,speed)*dt);agent.p.x+=dx/d*step;agent.p.z+=dz/d*step;agent.ty=Math.atan2(dx,dz);return d-step};
+ const navSetSpeed=(agent,speed)=>{agent.navActualSpeed=speed;agent.sp=agent.navAnimNormalized?Math.min(1,speed/6):speed};
+ const smartMoveAgent=(agent,target,dt,speed=2.5,allowClimb=true)=>{
+  if(!target||!agent.p)return;const c=agent.navClimb;
+  if(c){agent.navLineClear=false;agent.g=false;agent.climbing=true;
+   if(c.phase===0){const rem=navMoveFlat(agent,c.ax,c.az,dt,Math.max(.5,speed));navSetSpeed(agent,speed*.65);if(rem<.22)c.phase=1;return}
+   if(c.phase===1){navSetSpeed(agent,speed*.5);agent.p.y+=(c.climbY-agent.p.y)*Math.min(1,dt*2.5);if(Math.abs(c.climbY-agent.p.y)<.12){agent.p.y=c.climbY;c.phase=2}return}
+   if(c.phase===2){agent.p.y=c.climbY;const rem=navMoveFlat(agent,c.ex,c.ez,dt,Math.max(.8,speed));navSetSpeed(agent,speed*.8);if(rem<.25)c.phase=3;return}
+   navSetSpeed(agent,speed*.45);agent.p.y+=(c.baseY-agent.p.y)*Math.min(1,dt*2.1);if(Math.abs(agent.p.y-c.baseY)<.12){agent.p.y=c.baseY;agent.navClimb=null;agent.navPath=null;agent.navTimer=0;agent.climbing=false;agent.g=true;navSetSpeed(agent,0)}return;
+  }
+  const dx=target.x-agent.p.x,dz=target.z-agent.p.z,dist=Math.hypot(dx,dz);
+  agent.navTimer=(agent.navTimer||0)-dt;
+  const targetMoved=!agent.navTarget||Math.hypot(target.x-agent.navTarget.x,target.z-agent.navTarget.z)>1.75;
+  if(agent.navTimer<=0||targetMoved||agent.navLineClear===undefined){
+   agent.navTimer=agent.pc?1.1:.52;agent.navTarget={x:target.x,z:target.z};
+   const obs=navObstaclesBetween(agent.p,target),hit=navSegmentHit(agent.p,target,obs);agent.navLineClear=!hit;agent.navPath=null;agent.navIndex=0;
+   if(hit){const path=navFindPath(agent.p,target,obs);
+    if(path&&path.length){agent.navPath=path}
+    else if(allowClimb){const length=Math.max(.001,dist),ux=dx/length,uz=dz/length,approach=Math.max(0,hit.enter*length-.48),exit=Math.min(length,hit.exit*length+.55),top=hit.b[1]+hit.b[4]/2;
+     agent.navClimb={phase:0,ax:agent.p.x+ux*approach,az:agent.p.z+uz*approach,ex:agent.p.x+ux*exit,ez:agent.p.z+uz*exit,climbY:Math.max(agent.p.y+1.25,top+.9),baseY:agent.p.y};agent.navPath=null;
+    }else agent.navPath=[];
+   }
+  }
+  if(agent.navClimb){smartMoveAgent(agent,target,dt,speed,allowClimb);return}
+  if(agent.navLineClear){const rem=navMoveFlat(agent,target.x,target.z,dt,speed);navSetSpeed(agent,rem<dist-.001?speed:0);return}
+  if(agent.navPath&&agent.navPath.length){while(agent.navIndex<agent.navPath.length&&Math.hypot(agent.navPath[agent.navIndex].x-agent.p.x,agent.navPath[agent.navIndex].z-agent.p.z)<.38)agent.navIndex++;
+   if(agent.navIndex<agent.navPath.length){const wp=agent.navPath[agent.navIndex],before=Math.hypot(wp.x-agent.p.x,wp.z-agent.p.z),rem=navMoveFlat(agent,wp.x,wp.z,dt,speed);navSetSpeed(agent,rem<before-.001?speed:0)}else{navSetSpeed(agent,0);if(dist<NAV_STEP*1.4)agent.navTimer=0;}
+  }else navSetSpeed(agent,0);
+ };
  GRAV=S.grav||28;JP=S.jump||10.5;WS=S.walk||6;
  if(lava&&!sb){const pb=[SP[0],SP[1]-.15,SP[2],10,.3,10,'#3a3a5c',1,1];B.push(pb);addM(pb)}
  pl.p.set(SP[0],SP[1],SP[2]);unst(pl);
@@ -854,7 +933,7 @@ function play(id,roomCode='',createRoom=false){
   ladder:(x,baseY,z,height=4)=>{height=Math.max(2,Math.min(12,Number(height)||4));const group=new THREE.Group(),wood=new THREE.MeshLambertMaterial({color:'#8d5524'}),rung=new THREE.MeshLambertMaterial({color:'#c9a66b'});for(const rx of [-.52,.52]){const rail=new THREE.Mesh(new THREE.BoxGeometry(.12,height,.12),wood);rail.position.set(rx,height/2,0);rail.castShadow=true;group.add(rail)}for(let yy=.3;yy<height;yy+=.48){const bar=new THREE.Mesh(new THREE.BoxGeometry(1.12,.09,.1),rung);bar.position.set(0,yy,0);group.add(bar)}group.position.set(x,baseY,z);sc.add(group);const zone={isLadder:true,x,baseY,z,height,faceZ:z+.85,group};ladderZones.push(zone);return zone},
   removeLadder:zone=>{if(!zone||!zone.isLadder)return;sc.remove(zone.group);const i=ladderZones.indexOf(zone);if(i>=0)ladderZones.splice(i,1)},
   moveBlock:(mesh,axis='x',range=2,speed=1)=>{if(!mesh||!mesh.userData||!mesh.userData.b)return;const b=mesh.userData.b;movingBlocks.push({mesh,b,axis,base:b[axis==='x'?0:axis==='y'?1:2],range:Math.max(.1,Math.min(10,range)),speed:Math.max(.1,Math.min(5,speed)),phase:Math.random()*Math.PI*2})},
-  mob:(x,z,o={})=>{const zz=o.size||.9,seed=(mobs.length+1)*17+Math.floor(Math.abs(x*13+z*7)),av=npcMinecraftAvatar(seed,o.color||'#c1121f'),m=mk(av);m.scale.setScalar(zz/.9);m.castShadow=true;sc.add(m);const e={m,p:new THREE.Vector3(x,o.y||0,z),hp:o.hp||30,sp:o.speed||2.5,dm:o.dmg||8,cd:0,fl:0,pc:o.peaceful,h:zz,character:true,pk:av,g:true,swimming:false,climbing:false,baseScale:zz/.9};mobs.push(e);return e}};
+  mob:(x,z,o={})=>{const zz=o.size||.9,seed=(mobs.length+1)*17+Math.floor(Math.abs(x*13+z*7)),av=npcMinecraftAvatar(seed,o.color||'#c1121f'),m=mk(av);m.scale.setScalar(zz/.9);m.castShadow=true;sc.add(m);const e={m,p:new THREE.Vector3(x,o.y||0,z),hp:o.hp||30,sp:0,navSpeed:o.speed||2.5,dm:o.dmg||8,cd:0,fl:0,pc:o.peaceful,h:zz,character:true,pk:av,g:true,swimming:false,climbing:false,baseScale:zz/.9};mobs.push(e);return e}};
  GAME={api,pl,mobs,cl,SP,sc,nds};try{new Function('game',g.sc||'')(api)}catch(e){say('Error en script',e.message)}
  if(g.id==='d2')api.water(8,.7,-8,7,1.4,7,false);
  if(g.id==='d18'&&!waterZones.length)api.water(0,3,0,400,8,400,true);
@@ -928,8 +1007,8 @@ function play(id,roomCode='',createRoom=false){
   ensureProceduralWorld();
   if(bj===1)bj=t+.6;
   const tg=new THREE.Vector3(pl.p.x+Math.sin(yaw+.9)*2.2,pl.p.y+2.2+Math.sin(t*2)*.25+(t<bj?1.5:0),pl.p.z+Math.cos(yaw+.9)*2.2),od=bot.p.clone();
-  if(follow)bot.p.lerp(tg,Math.min(1,dt*3));
-  bot.sp=Math.min(1,od.distanceTo(bot.p)/dt/6);bot.g=1;bot.vy=0;
+  if(follow)smartMoveAgent(bot,tg,dt,5.2,true);else navSetSpeed(bot,0);
+  bot.sp=Math.min(1,od.distanceTo(bot.p)/Math.max(dt,.001)/6);bot.g=!bot.navClimb;bot.vy=0;
   if(follow&&bot.sp>.1)bot.ty=Math.atan2(pl.p.x-bot.p.x,pl.p.z-bot.p.z);
   if(t<dn_)bot.ty=(bot.ty||0)+dt*8;
   ndT-=dt;if(ndT<=0){ndT=4;if(Math.random()<.2)spawnND()}
@@ -948,8 +1027,9 @@ function play(id,roomCode='',createRoom=false){
   if(JA){JA=0;hit()}
   if(atk>0){atk-=dt;pl.ax=-1.9*Math.sin((1-Math.max(atk,0)/.35)*Math.PI)}else pl.ax=hasSword?-.7:0;
   mobs.forEach(m=>{if(m.dead)return;m.fl-=dt;const bob=Math.abs(Math.sin(t*6))*.035;
-   if(m.pc){if(t>(m.tt||0)){m.tt=t+2+Math.random()*3;m.a=Math.random()*6.28}m.p.x+=Math.sin(m.a)*m.sp*dt;m.p.z+=Math.cos(m.a)*m.sp*dt;if(m.p.length()>35)m.a=Math.atan2(-m.p.x,-m.p.z);m.ty=m.a;m.m.position.set(m.p.x,m.p.y+bob,m.p.z);m.sp=Math.max(.2,m.sp);anim(m,t,dt);return}
-   const d=pl.p.clone().sub(m.p);d.y=0;const l=d.length();if(!m.pc&&l<25&&l>1.2+m.h/2){m.p.addScaledVector(d,m.sp*dt/l);m.ty=Math.atan2(d.x,d.z)}m.cd-=dt;if(!m.pc&&l<1.5+m.h/2&&m.cd<=0){m.cd=1;pl.hp-=m.dm;beep(160,.12)}m.sp=m.pc?Math.min(.55,m.sp):m.sp;m.g=true;m.swimming=false;m.climbing=false;m.m.position.set(m.p.x,m.p.y+bob,m.p.z);m.m.scale.setScalar((m.fl>0?1.08:1)*m.baseScale);anim(m,t,dt)});for(let mi=mobs.length-1;mi>=0;mi--)if(mobs[mi].dead)mobs.splice(mi,1);
+   if(m.pc){if(t>(m.tt||0)){m.tt=t+2+Math.random()*3;m.a=Math.random()*6.28;m.wanderTarget={x:m.p.x+Math.sin(m.a)*(3+Math.random()*4),z:m.p.z+Math.cos(m.a)*(3+Math.random()*4)}}if(!m.wanderTarget)m.wanderTarget={x:m.p.x+Math.sin(m.a||0)*3,z:m.p.z+Math.cos(m.a||0)*3};smartMoveAgent(m,m.wanderTarget,dt,m.navSpeed||.7,true);m.ty=m.ty??m.a;m.g=!m.navClimb;m.swimming=false;m.climbing=!!m.navClimb;m.m.position.set(m.p.x,m.p.y+bob,m.p.z);anim(m,t,dt);return}
+   const d=pl.p.clone().sub(m.p);d.y=0;const l=d.length();if(l<25)smartMoveAgent(m,pl.p,dt,m.navSpeed||2.5,true);else navSetSpeed(m,0);
+   m.cd-=dt;if(l<1.5+m.h/2&&m.navLineClear&&m.cd<=0){m.cd=1;pl.hp-=m.dm;beep(160,.12)}m.g=!m.navClimb;m.swimming=false;m.climbing=!!m.navClimb;m.m.position.set(m.p.x,m.p.y+bob,m.p.z);m.m.scale.setScalar((m.fl>0?1.08:1)*m.baseScale);anim(m,t,dt)});for(let mi=mobs.length-1;mi>=0;mi--)if(mobs[mi].dead)mobs.splice(mi,1);
   pl.hp=ADM.god?100:Math.min(100,pl.hp+2*dt);if(pl.hp<=0){pl.hp=100;pl.p.set(0,1,0);pl.vy=0;say('Juego','Has caído. ¡Reapareces!')}
   $('#hp').textContent=mobs.length||hasSword?'❤ '+Math.ceil(pl.hp):'';
   hooks.forEach(h=>h(dt,t));

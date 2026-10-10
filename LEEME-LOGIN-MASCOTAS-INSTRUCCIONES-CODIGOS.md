@@ -19,6 +19,12 @@ El editor ofrece 24 tipos de mascota/minion con siluetas diferenciadas y 16 tipo
 
 Al comenzar una partida se muestra una tarjeta con objetivo, controles y consejos por género. Se puede cerrar con el botón de cerrar o «¡Entendido, jugar!». El menú de pausa (Esc o Menú) incluye «Instrucciones» para volver a abrirla.
 
+## Navegación inteligente de NPC y bots
+
+Los enemigos y NPC usan navegación A* sobre una cuadrícula local para rodear paredes y muros sólidos del mapa. La ruta se vuelve a calcular de forma periódica, y el contacto con obstáculos se comprueba antes de permitir daño cuerpo a cuerpo para evitar golpear a través de una pared. Si no se encuentra una ruta alrededor de un muro atravesado por la línea directa, el NPC ejecuta una secuencia de aproximación, escalada con animación de manos, cruce por encima y descenso. El minion seguidor también evita atravesar muros e intenta seguir una ruta alrededor.
+
+La navegación reduce el uso de cálculo al recalcular rutas por intervalos, pero hay que probar mapas concretos: diseños cerrados, plataformas elevadas y muros muy anchos pueden necesitar ajustes de colisiones o puntos de navegación.
+
 ## Nuevos modos
 
 El catálogo actual contiene 124 experiencias oficiales integradas: 34 originales y 90 generadas por familias de modo. Incluye parkour/obby, carreras, tycoon, supervivencia, defensa, mazmorras, deportes, aventuras, laberintos, granjas, roleplay, pesca, cocina, escondite, rescate, ritmo, reparto y duelos. Comparten el motor 3D; no son 124 motores independientes.
