@@ -373,6 +373,9 @@ const srv=http.createServer(async(q,r)=>{
    if(result){await sendWalletToName(result.username,result.balance);return json(r,200,{ok:true,code:result.code,reward:result.reward,balance:result.balance})}
    return json(r,500,{ok:false,error:'No se pudo canjear el código.'});
   }
+  if(q.method==='GET'&&url.pathname==='/api/multiplayer/health'){
+   const online=[...P.values()];return json(r,200,{ok:true,transport:'websocket',activePlayers:online.length,activeRooms:new Set(online.map(p=>p.g)).size,sharedNpcState:true,sharedBuildEvents:true,sharedGameState:true,instanceModel:'single-process'});
+  }
   if(q.method==='GET'&&url.pathname==='/players'){
    const list=[...P.values()].map(p=>({n:p.n,g:p.room?(p.world+' (sala privada)'):p.world,world:p.world,private:!!p.room,rank:p.rank}));return json(r,200,{players:list});
   }
@@ -384,8 +387,13 @@ const srv=http.createServer(async(q,r)=>{
   fs.readFile(file,(e,b)=>{if(e){r.writeHead(404);return r.end('No encontrado')}r.writeHead(200,{'Content-Type':T[path.extname(file)]||'application/octet-stream','X-Content-Type-Options':'nosniff'});r.end(b)});
  }catch(e){console.error('Error API/servidor:',e.message);if(!r.headersSent)json(r,500,{ok:false,error:e.message==='Solicitud demasiado grande'||e.message==='JSON inválido'?e.message:'Error del servidor o de la base de datos. Comprueba DATABASE_URL y los logs de Render.'});}
 });
-const wss=new WebSocketServer({server:srv}),P=new Map();let nid=1;
-const bc=(me,m)=>{const s=JSON.stringify(m);for(const p of P.values())if(p!==me&&p.g==me.g&&p.ws.readyState==1)p.ws.send(s)};
+const wss=new WebSocketServer({server:srv}),P=new Map(),ROOM_DATA=new Map();let nid=1;
+const roomData=g=>{if(!ROOM_DATA.has(g))ROOM_DATA.set(g,{state:new Map(),removed:new Set(),blocks:new Map(),mobs:new Map()});return ROOM_DATA.get(g)};
+const broadcastRoom=(g,m,exceptId=null)=>{const s=JSON.stringify(m);for(const p of P.values())if(p.g===g&&p.id!==exceptId&&p.ws.readyState===1)p.ws.send(s)};
+const bc=(me,m)=>broadcastRoom(me.g,m,me.id);
+const safeRoomKey=k=>typeof k==='string'&&/^[A-Za-z0-9:_-]{1,100}$/.test(k);
+const validBlock=b=>Array.isArray(b)&&b.length>=8&&b.slice(0,6).every(v=>Number.isFinite(Number(v))&&Math.abs(Number(v))<=10000)&&typeof b[6]==='string'&&b[6].length<=40;
+const jsonSize=v=>{try{return Buffer.byteLength(JSON.stringify(v))}catch{return Infinity}};
 wss.on('connection',ws=>{const id=nid++;
  ws.on('message',async raw=>{let d;try{d=JSON.parse(raw)}catch{return}
   if(d.t==='join'){
@@ -394,11 +402,12 @@ wss.on('connection',ws=>{const id=nid++;
    try{await initAuthSchema();const valid=await economyPool.query('SELECT 1 FROM nixora_account_sessions WHERE username_norm=$1 AND session_id=$2 AND expires_at>NOW()',[n.toLowerCase(),sid]);if(!valid.rowCount){ws.send(JSON.stringify({t:'chat',n:'Servidor',m:'No se pudo verificar tu sesión. Vuelve a iniciar sesión.'}));return ws.close(1008,'Sesión no válida')}}catch(err){console.error('No se pudo validar sesión WebSocket:',err.message);ws.send(JSON.stringify({t:'chat',n:'Servidor',m:'No se pudo verificar tu sesión con PostgreSQL.'}));return ws.close(1011,'Validación fallida')}
    if([...P.values()].some(p=>p.n.toLowerCase()===n.toLowerCase())){ws.send(JSON.stringify({t:'chat',n:'Servidor',m:'Perdon, pero ya hay alguien jugando en esta cuenta. Por favor, vuelve más tarde.'}));return ws.close(1008,'Cuenta ocupada')}
    if(room&&!d.owner&&!([...P.values()].some(p=>p.world===world&&p.room===room))){ws.send(JSON.stringify({t:'chat',n:'Servidor',m:'No existe una sala privada con ese código. Comprueba el código con tu amigo.'}));return ws.close()}
-   const pvp=!!d.pvp,duelMembers=[...P.entries()].filter(([otherId,p])=>otherId!==id&&p.g===g&&p.pvp);
+   const currentRoom=[...P.values()].filter(p=>p.g===g),pvp=!!d.pvp,duelMembers=[...P.entries()].filter(([otherId,p])=>otherId!==id&&p.g===g&&p.pvp);
    if(pvp&&duelMembers.length>=2){ws.send(JSON.stringify({t:'chat',n:'Arena',m:'Esta arena ya tiene dos jugadores. Busca otra partida 1 contra 1.'}));return ws.close(1008,'Arena completa')}
-   const side=pvp?(duelMembers.length?(duelMembers[0][1].side===1?2:1):1):0;
-   const me={ws,n,g,world,room,av:d.av||{},rank:String(d.rank||'').slice(0,40),x:0,y:0,z:0,ry:0,sp:0,cr:0,pvp,side,hp:100,kos:0,lastAttack:0,won:false};
+   const side=pvp?(duelMembers.length?(duelMembers[0][1].side===1?2:1):1):0,usedSlots=new Set(currentRoom.map(p=>p.slot));let slot=0;while(usedSlots.has(slot)&&slot<128)slot++;const isWorldHost=currentRoom.length===0;
+   const me={id,ws,n,g,world,room,av:d.av||{},rank:String(d.rank||'').slice(0,40),x:0,y:0,z:0,ry:0,sp:0,cr:0,pvp,side,hp:100,kos:0,lastAttack:0,lastMobAttack:0,won:false,slot,isWorldHost,lastGameEvent:0,lastMobSnapshot:0};
    P.set(id,me);
+   const rd=roomData(g);ws.send(JSON.stringify({t:'worldSnapshot',host:isWorldHost,slot,state:Object.fromEntries(rd.state),removed:[...rd.removed].slice(0,2500),blocks:[...rd.blocks.entries()].map(([key,block])=>({key,block})).slice(0,1000),mobs:[...rd.mobs.values()].filter(m=>!m.dead).slice(0,100)}));
    if(economyPool){readWallet(me.n).then(w=>{if(w&&ws.readyState===1)ws.send(JSON.stringify({t:'wallet',username:me.n,balance:Number(w.balance)}))}).catch(e=>console.error('No se pudo cargar la billetera al entrar:',e.message))}
    for(const [otherId,p] of P){if(otherId!==id&&p.g===me.g&&p.ws.readyState===1){ws.send(JSON.stringify({t:'st',id:otherId,n:p.n,av:p.av,rank:p.rank,x:p.x,y:p.y,z:p.z,ry:p.ry,sp:p.sp,cr:p.cr}));p.ws.send(JSON.stringify({t:'st',id,n:me.n,av:me.av,rank:me.rank,x:me.x,y:me.y,z:me.z,ry:me.ry,sp:me.sp,g:me.g,cr:me.cr}));}}
    if(pvp){const duel=[...P.values()].filter(p=>p.g===me.g&&p.pvp);if(duel.length===1)ws.send(JSON.stringify({t:'duelWaiting'}));else if(duel.length===2){duel[0].ws.send(JSON.stringify({t:'duelStart',side:duel[0].side,opponent:duel[1].n}));duel[1].ws.send(JSON.stringify({t:'duelStart',side:duel[1].side,opponent:duel[0].n}))}}
@@ -414,8 +423,36 @@ wss.on('connection',ws=>{const id=nid++;
    if(target.hp<=0){me.kos++;target.kos=0;target.hp=100;me.hp=100;target.ws.send(JSON.stringify({t:'combatRespawn',kos:target.kos,side:target.side}));me.ws.send(JSON.stringify({t:'combatKO',target:target.n,kos:me.kos,winner:me.kos>=3}));if(me.kos>=3){me.won=true;target.won=true;target.ws.send(JSON.stringify({t:'matchOver',winner:me.n}))}}
    return;
   }
+  // Shared state is scoped to one public game or its private room. Never use it for accounts or currency.
+  if(d.t==='gameState'){
+   const key=String(d.key||'');if(!safeRoomKey(key)||jsonSize(d.value)>8192)return;const rd=roomData(me.g);if(rd.state.size>=100&&!rd.state.has(key))return;
+   let value;try{value=JSON.parse(JSON.stringify(d.value))}catch{return}rd.state.set(key,value);broadcastRoom(me.g,{t:'gameState',key,value,by:me.n},id);return;
+  }
+  if(d.t==='gameEvent'){
+   const type=String(d.eventType||'');if(!/^[A-Za-z0-9:_-]{1,40}$/.test(type)||jsonSize(d.payload)>4096||Date.now()-me.lastGameEvent<60)return;me.lastGameEvent=Date.now();
+   let payload;try{payload=JSON.parse(JSON.stringify(d.payload??null))}catch{return}broadcastRoom(me.g,{t:'gameEvent',eventType:type,payload,by:me.n,playerId:id},id);return;
+  }
+  if(d.t==='blockAdd'){
+   const key=String(d.key||'');if(!safeRoomKey(key)||!validBlock(d.block))return;const rd=roomData(me.g);if(!rd.blocks.has(key)&&rd.blocks.size>=1000)return;const block=d.block.slice(0,13);rd.blocks.set(key,block);rd.removed.delete(key);broadcastRoom(me.g,{t:'blockAdd',key,block},id);return;
+  }
+  if(d.t==='blockRemove'){
+   const key=String(d.key||'');if(!safeRoomKey(key))return;const rd=roomData(me.g);rd.removed.add(key);rd.blocks.delete(key);if(rd.removed.size>2500)rd.removed.delete(rd.removed.values().next().value);broadcastRoom(me.g,{t:'blockRemove',key},id);return;
+  }
+  if(d.t==='mobSnapshot'){
+   if(!me.isWorldHost||Date.now()-me.lastMobSnapshot<90||!Array.isArray(d.mobs))return;me.lastMobSnapshot=Date.now();const rd=roomData(me.g),valid=[];
+   for(const m of d.mobs.slice(0,100)){if(!m||!safeRoomKey(String(m.id||'')))continue;const row={id:String(m.id),x:Number(m.x)||0,y:Number(m.y)||0,z:Number(m.z)||0,hp:Math.max(0,Math.min(100000,Number(m.hp)||0)),maxHp:Math.max(1,Math.min(100000,Number(m.maxHp)||100)),dead:!!m.dead,sp:Math.max(0,Math.min(20,Number(m.sp)||0)),size:Math.max(.2,Math.min(5,Number(m.size)||.9)),speed:Math.max(.1,Math.min(10,Number(m.speed)||2.5)),dmg:Math.max(0,Math.min(100,Number(m.dmg)||8)),peaceful:!!m.peaceful,color:typeof m.color==='string'&&m.color.length<=40?m.color:'#8d99ae'};
+    if([row.x,row.y,row.z].some(v=>!Number.isFinite(v)||Math.abs(v)>10000))continue;valid.push(row);if(!rd.mobs.get(row.id)?.dead)rd.mobs.set(row.id,row);
+   }
+   for(const [key,row] of rd.mobs)if(!row.dead&&!valid.some(m=>m.id===key))rd.mobs.delete(key);
+   broadcastRoom(me.g,{t:'mobSnapshot',mobs:valid},id);return;
+  }
+  if(d.t==='mobAttack'){
+   const targetId=String(d.targetId||'');if(!safeRoomKey(targetId)||Date.now()-me.lastMobAttack<350)return;const rd=roomData(me.g),target=rd.mobs.get(targetId);if(!target||target.dead)return;
+   const dx=me.x-target.x,dy=me.y-target.y,dz=me.z-target.z;if(dx*dx+dy*dy+dz*dz>4.8*4.8)return;me.lastMobAttack=Date.now();target.hp=Math.max(0,target.hp-15);target.dead=target.hp<=0;
+   broadcastRoom(me.g,{t:'mobDamaged',mobId:targetId,hp:target.hp,dead:target.dead,attacker:me.n,playerId:id});return;
+  }
   if(d.t==='chat')bc(me,{t:'chat',n:me.n,m:clean(d.m)});
  });
- ws.on('close',()=>{const me=P.get(id);if(me){bc(me,{t:'bye',id});P.delete(id);if(me.pvp)for(const p of P.values())if(p.g===me.g&&p.pvp&&p.ws.readyState===1)p.ws.send(JSON.stringify({t:'duelWaiting'}))}})
+ ws.on('close',()=>{const me=P.get(id);if(me){bc(me,{t:'bye',id});const formerHost=me.isWorldHost,room=me.g;P.delete(id);const remaining=[...P.values()].filter(p=>p.g===room);if(formerHost&&remaining.length){remaining[0].isWorldHost=true;if(remaining[0].ws.readyState===1)remaining[0].ws.send(JSON.stringify({t:'worldHost',host:true,slot:remaining[0].slot}))}if(!remaining.length)ROOM_DATA.delete(room);if(me.pvp)for(const p of P.values())if(p.g===me.g&&p.pvp&&p.ws.readyState===1)p.ws.send(JSON.stringify({t:'duelWaiting'}))}})
 });
 srv.listen(PORT,()=>console.log('Nixora Blox listo en http://localhost:'+PORT));
