@@ -37,7 +37,7 @@ Después del despliegue, abre `https://TU-SITIO-RENDER/api/economy/health`. Debe
 - Las acciones administrativas `Dar / Quitar / Fijar saldo` usan la base de datos compartida. Las cuentas, perfiles y contraseñas del juego siguen usando el sistema local antiguo; esta actualización no las migra a PostgreSQL.
 - Los saldos antiguos solo existían en `localStorage` y no se pueden importar automáticamente desde otros dispositivos. En la primera operación, si la cuenta destinataria existe en el navegador administrador, el saldo local que allí se conoce se usa como saldo inicial; para un jugador que solo existe en otro dispositivo, el saldo inicial será 0 más el ajuste indicado. Revisa y fija los saldos de migración desde el panel según corresponda.
 - Compras, misiones, logros y otras recompensas siguen usando la economía local existente; aún no están completamente migradas al backend. No asumas que toda la economía ya está centralizada.
-- El servidor confía en la clave `NIXORA_ADMIN_KEY` para autorizar los ajustes. Protégela y no la compartas.
+- El servidor usa `NIXORA_ADMIN_KEY` para autorizar los ajustes y proteger la cuenta `ParaCraftero`. No publiques la llave. Consulta `LEEME-MAPAS-ANIMACIONES-SEGURIDAD.md` para el historial y el bloqueo de sesiones.
 
 ## Respaldo y solución de problemas
 

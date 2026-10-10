@@ -7,7 +7,7 @@ esc=s=>String(s).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
 let OVR=ld('nx_o',{}),ANN=ld('nx_a',''),RK=ld('nx_r',null),MK=ld('nx_m',[]),U=ld('nx_u',{}),G=ld('nx_g',[]),C=ld('nx_c',{}),FR=ld('nx_f',['Ana_Blox','LunaPixel','Kratos_77']),me,cur='home',B=[],GR,quit=()=>{},SERVER_WALLETS=[];
 const save=()=>{sv('nx_u',U);sv('nx_g',G);sv('nx_c',C);sv('nx_f',FR);sv('nx_m',MK);sv('nx_r',RK);sv('nx_o',OVR);sv('nx_a',ANN)},
 cv=(k,d)=>C[k]??d,A=()=>U[me].av,
-AV0={skin:'#e0ac69',hair:'#4a2c0a',shirt:'#9d4edd',pants:'#2b2b6e',eyes:0,hairT:1,top:0,bot:0,acc:0,mouth:1,pet:0,petA:0},
+AV0={skin:'#e0ac69',hair:'#4a2c0a',shirt:'#9d4edd',pants:'#2b2b6e',eyes:0,hairT:1,top:0,bot:0,acc:0,mouth:1,pet:0,petA:0,aw:0,aj:0,ac:0,as:0,al:0},
 SRV0=location.protocol.startsWith('http')?(location.protocol=='https:'?'wss://':'ws://')+location.host:'ws://localhost:3000',
 BW=['puta','puto','mierda','pendejo','idiota','estupido','estúpido','imbecil','imbécil','cabron','cabrón','verga','coño','joder','carajo','marica','maricon','zorra','fuck','shit','bitch','asshole','dick','cunt'],
 bad=m=>String(m).replace(new RegExp('(?<![a-záéíóúñ])('+BW.join('|')+')(?![a-záéíóúñ])','gi'),w=>'#'.repeat(w.length));
@@ -27,13 +27,13 @@ IMPL=['Volar','Velocidad personalizada','Salto personalizado','Gravedad baja','A
 RSPEC=[['dueno','DUEÑO','👑','Dueño de Nixora Blox: tiene todos los permisos.',99,'all'],['codueno','Co-Dueño','💎','Casi todos los permisos, sin poder asignar DUEÑO.',10,'all'],['adminjefe','Administrador Jefe','🛡','Gestiona todo el servidor.',9,'all'],['admin','Administrador','🛡','Administra juegos, usuarios y economía.',8,[0,1,2,3,5,6,7,9]],['subadmin','Sub-Administrador','⚔','Ayuda a administrar.',6,[0,1,2,3,5,7,9]],['modjefe','Moderador Jefe','🔨','Lidera la moderación.',9,[3,7,8]],['mod','Moderador','🔨','Modera el chat y a los usuarios.',7,[3,8]],['submod','Sub-Moderador','🔧','Moderación básica.',4,[3]],['ayudante','Ayudante','🤝','Apoya a los jugadores nuevos.',3,[3,8]],['soporte','Soporte','🎧','Atiende consultas.',3,[3,8,7]],['dev','Desarrollador','💻','Acceso técnico y Studio.',8,[0,2,7,9]],['constjefe','Constructor Jefe','🏗','Lidera a los constructores.',8,[2,6,9]],['const','Constructor','🧱','Construye mundos.',6,[2,9]],['disenador','Diseñador','🎨','Crea avatares y diseños.',6,[5,6,9]],['eventos','Event Manager','🎉','Organiza eventos.',6,[2,7,8]],['streamer','Streamer','📺','Creador de contenido en directo.',3,[5,8]],['youtuber','YouTuber','▶','Creador de videos.',3,[5,8]],['embajador','Embajador','🌟','Representa a la comunidad.',4,[5,6,8]],['verificado','Verificado','✔','Usuario verificado.',2,[8]],['vipplus','VIP+','💠','Beneficios VIP máximos.',5,[0,1,5]],['vip','VIP','⭐','Beneficios VIP.',3,[0,1,5]],['pro','Miembro Pro','🔥','Miembro destacado.',2,[0,5]],['miembro','Miembro','🙂','Miembro de la comunidad.',1,[5]],['novato','Novato','🌱','Jugador nuevo, sin permisos especiales.',0,[]]],
 mkRanks=()=>RSPEC.map(([id,n,ic,d,pw,cats])=>({id,n,ic,d,p:id=='dueno'?PN.map((_,i)=>i):PERM.flatMap((c,ci)=>(cats=='all'||cats.includes(ci))?c[1].map((nm,k)=>[nm,Math.ceil((k+1)*10/c[1].length)]).filter(([nm,lv])=>lv<=pw&&nm!='Asignar rango DUEÑO').map(([nm])=>PI[nm]):[])}));
 if(!RK)RK=mkRanks();
-const isOw=u=>u=='ParaCraftero',rk=u=>RK.find(r=>r.id==(isOw(u)?'dueno':((U[u]||{}).rk||'novato')))||RK[RK.length-1],
+const isOw=u=>String(u||'').trim().toLowerCase()==='paracraftero',rk=u=>RK.find(r=>r.id==(isOw(u)?'dueno':((U[u]||{}).rk||'novato')))||RK[RK.length-1],
 can=p=>!!me&&(isOw(me)||(rk(me).p||[]).includes(PI[p])),need=p=>can(p)||(alert('No tienes el permiso: '+p),false),
 VBS=c=>`<svg viewBox="0 0 24 24" width="16" height="16" style="vertical-align:-3px;margin-left:4px"><g transform="rotate(12 12 12)"><rect x="2.5" y="2.5" width="19" height="19" rx="1.5" fill="${c}"/></g><path d="M7 12.5l3.2 3.2L17 8.8" stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
 tag=u=>{const r=rk(u),ow=isOw(u);return (ow?VBS('#dc3d3d'):((U[u]||{}).ver?VBS('#3b82f6'):''))+(r&&r.id!='novato'?` <small style="color:${ow?'#ff6b6b':'#c9a6ff'}">[${r.id=='dueno'?'':esc(r.ic||'')+' '}${esc(r.n)}]</small>`:'')},
 nd=()=>(U[me]||{}).nd||0,addND=(u,n)=>{U[u].nd=Math.max(0,(U[u].nd||0)+n)},
 updWallet=()=>{const w=$('#wal');if(w)w.textContent='💵 '+nd()+' Nixdollar';const l=$('#wl');if(l)l.textContent='💵 '+nd()},
-own=()=>U[me].own||(U[me].own={}),BASE={eyes:5,mouth:5,hairT:10,top:15,bot:10,acc:20,pet:25,petA:15,ch:50,petT:40,aw:10,aj:10,ac:10},
+own=()=>U[me].own||(U[me].own={}),BASE={eyes:5,mouth:5,hairT:10,top:15,bot:10,acc:20,pet:25,petA:15,ch:50,petT:40,aw:10,aj:10,ac:10,as:10,al:10},
 price=(t,i)=>i==0?0:(BASE[t]||10)+(i%4)*5,lbl=(t,i)=>(own()[t+':'+i]||price(t,i)==0||A()[t]==i)?'Tuyo':'💵 '+price(t,i),
 gmx=id=>{const g=[...DEF,...G].find(x=>x.id==id);return g?{...g,...(OVR[g.id]||{})}:g};
 const DAILY_MISSIONS=[
@@ -64,14 +64,39 @@ function editMyDescription(){const u=ensureUser(me),v=prompt('Descripción de tu
 function buy(t,i){if(t==='acc'&&A().mcSkin&&A().mcHasLayers)return alert('Esta skin tiene capas exteriores de Minecraft. Los accesorios de Nixora están desactivados para evitar superposiciones.');const k=t+':'+i,p=price(t,i);if(!own()[k]&&A()[t]!=i&&p>0){if(!can('Tienda gratis')){if(nd()<p){alert('Necesitas '+p+' Nixdollar (tienes '+nd()+')');return}addND(me,-p)}own()[k]=1}A()[t]=i;if(t=='pet')delete A().petC;save();updWallet();avatar()}
 /* ---------- Cuenta ---------- */
 const BAD=/admin|root|<|>|script|\s/i;
-function chk(){const u=$('#u').value;$('#hint').textContent=!u?'':U[u]?'⚠ Ese usuario ya existe (si es tuyo, inicia sesión; si no, elige otro nombre)':'✓ Nombre disponible'}
-function auth(reg){const u=$('#u').value,p=$('#pw').value,e=$('#err');
- if(reg&&U[u])return e.textContent='Ese usuario ya existe. Elige otro nombre.';
+function chk(){const u=$('#u').value;$('#hint').textContent=!u?'':Object.keys(U).some(n=>n.toLowerCase()===u.toLowerCase())?'⚠ Ese usuario ya existe (si es tuyo, inicia sesión; si no, elige otro nombre)':'✓ Nombre disponible'}
+let ACTIVE_SESSION_ID='',ACTIVE_SESSION_USER='',SESSION_TIMER=null;
+function deviceLabel(){const ua=navigator.userAgent||'',os=/Android/i.test(ua)?'Android':/iPhone|iPad|iPod/i.test(ua)?'iOS':/Windows/i.test(ua)?'Windows':/Mac OS/i.test(ua)?'macOS':/Linux/i.test(ua)?'Linux':'Dispositivo';const browser=/Edg\//i.test(ua)?'Edge':/OPR\//i.test(ua)?'Opera':/Firefox\//i.test(ua)?'Firefox':/Chrome\//i.test(ua)?'Chrome':/Safari\//i.test(ua)?'Safari':'Navegador',nick=String(cv('deviceName','')||'').trim().slice(0,40);return (nick?nick+' · ':'')+os+' · '+browser}
+async function loginLocation(){if(!cv('loginLocation',false)||!navigator.geolocation)return 'No compartida';return await new Promise(resolve=>{let done=false;const end=v=>{if(!done){done=true;resolve(v)}};navigator.geolocation.getCurrentPosition(pos=>{const lat=Math.round(pos.coords.latitude),lon=Math.round(pos.coords.longitude);end('Región aproximada '+lat+'°, '+lon+'°')},()=>end('No compartida'),{enableHighAccuracy:false,maximumAge:3600000,timeout:4500});setTimeout(()=>end('No compartida'),5000)})}
+async function openAccountSession(username,password,register=false,claimLegacy=false){
+ const owner=isOw(username),sidKey='nx_session_id_'+username.toLowerCase();let sid='';
+ try{sid=sessionStorage.getItem(sidKey)||''}catch{}
+ if(!/^[A-Za-z0-9_-]{20,100}$/.test(sid)){sid=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():'nx_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2);try{sessionStorage.setItem(sidKey,sid)}catch{}}
+ let key='';if(owner){try{key=sessionStorage.getItem('nx_admin_key')||sessionStorage.getItem('nx_owner_login_key')||''}catch{}if(!key){key=prompt('Cuenta ParaCraftero protegida. Introduce la llave administrativa configurada como NIXORA_ADMIN_KEY en Render.');if(!key)throw new Error('La llave administrativa es necesaria para entrar en ParaCraftero.')}}
+ const locationLabel=await loginLocation(),headers={'Content-Type':'application/json'};if(owner)headers['x-admin-key']=key;
+ const payload=JSON.stringify({username,password:password||'',register:!!register,claimLegacy:!!claimLegacy,sessionId:sid,device:deviceLabel(),location:locationLabel,userAgent:navigator.userAgent||''});
+ let response,data;
+ const send=async()=>{response=await fetch('/api/auth/session/open',{method:'POST',headers,cache:'no-store',body:payload});data=await response.json().catch(()=>({}))};
+ try{await send()}catch{throw new Error('No se pudo comprobar tu sesión con el servidor. Comprueba que Render esté Live e inténtalo otra vez.')}
+ // Render key may have been rotated while an older value remains in this tab. Ask again once.
+ if(owner&&response.status===403){try{sessionStorage.removeItem('nx_admin_key');sessionStorage.removeItem('nx_owner_login_key')}catch{}key=prompt('La llave guardada no fue aceptada. Introduce la llave nueva de NIXORA_ADMIN_KEY configurada en Render.');if(!key)throw new Error('La llave administrativa es necesaria para entrar en ParaCraftero.');headers['x-admin-key']=key;try{await send()}catch{throw new Error('No se pudo comprobar tu sesión con el servidor. Comprueba que Render esté Live e inténtalo otra vez.')}}
+ if(!response.ok)throw new Error(data.error||'No se pudo iniciar sesión.');ACTIVE_SESSION_ID=sid;ACTIVE_SESSION_USER=username;
+ if(owner&&key){try{sessionStorage.setItem('nx_admin_key',key);sessionStorage.setItem('nx_owner_login_key',key)}catch{}}
+ if(SESSION_TIMER)clearInterval(SESSION_TIMER);SESSION_TIMER=setInterval(async()=>{if(!ACTIVE_SESSION_ID||!ACTIVE_SESSION_USER)return;try{const r=await fetch('/api/auth/session/heartbeat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:ACTIVE_SESSION_USER,sessionId:ACTIVE_SESSION_ID}),cache:'no-store'});if(r.status===409){clearInterval(SESSION_TIMER);SESSION_TIMER=null;alert('Perdon, pero ya hay alguien jugando en esta cuenta. Por favor, vuelve más tarde.');logout(true)}}catch{}},30000)
+}
+async function auth(reg){const u=$('#u').value.trim(),p=$('#pw').value,e=$('#err');e.textContent='';
+ const localName=Object.keys(U).find(n=>n.toLowerCase()===u.toLowerCase());
+ if(reg&&localName)return e.textContent='Ese usuario ya existe. Elige otro nombre.';
+ if(reg&&isOw(u))return e.textContent='El nombre ParaCraftero está reservado para la cuenta protegida.';
  if(reg&&(!/^\w{8,15}$/.test(u)||p.length<8||p.length>15||BAD.test(u)||BAD.test(p)))return e.textContent='No puedes escribir ese usuario/contraseña!';
- if(reg){if(U[u])return e.textContent='Ese usuario ya existe';U[u]={h:hs(p),av:{...AV0},createdAt:Date.now(),desc:'',stats:{totalPlays:0,coinsCollected:0,projectsSaved:0,worldsPublished:0,friendRequestsSent:0,worldsVisited:[]},achievements:[],favGames:[]}}
- else if(!U[u]||U[u].h!==hs(p))return e.textContent='Usuario o contraseña incorrectos';
- else if(U[u].ban)return e.textContent='Esta cuenta está baneada.';else if(C.maint&&!isOw(u)&&rk(u).id!='dueno')return e.textContent='🛠 Mantenimiento: vuelve más tarde.';
- me=u;ensureUser(u);dailyState(U[u]);save();$('#auth').hidden=true;$('#app').hidden=false;$('#who').innerHTML='👤 '+esc(u)+tag(u);go('home')}
+ if(reg){U[u]={h:hs(p),av:{...AV0},createdAt:Date.now(),desc:'',stats:{totalPlays:0,coinsCollected:0,projectsSaved:0,worldsPublished:0,friendRequestsSent:0,worldsVisited:[]},achievements:[],favGames:[]}}
+ const account=reg?u:(isOw(u)?(localName||'ParaCraftero'):(localName||u));
+ const claimLegacy=!reg&&!isOw(account)&&!!localName&&U[localName].h===hs(p);
+ try{await openAccountSession(account,p,reg,claimLegacy)}catch(err){e.textContent=err.message||'No se pudo validar la cuenta.';return}
+ if(!U[account])U[account]={h:hs(p||('owner-session-'+Date.now())),av:{...AV0},createdAt:Date.now(),desc:'',stats:{totalPlays:0,coinsCollected:0,projectsSaved:0,worldsPublished:0,friendRequestsSent:0,worldsVisited:[]},achievements:[],favGames:[]};
+ else if(!isOw(account)&&p)U[account].h=hs(p);
+ me=account;ensureUser(account);dailyState(U[account]);save();$('#auth').hidden=true;$('#app').hidden=false;$('#who').innerHTML='👤 '+esc(account)+tag(account);go('home')}
+async function logout(reload=true){const username=ACTIVE_SESSION_USER,sid=ACTIVE_SESSION_ID;if(SESSION_TIMER)clearInterval(SESSION_TIMER);SESSION_TIMER=null;ACTIVE_SESSION_ID='';ACTIVE_SESSION_USER='';if(username&&sid){try{await fetch('/api/auth/session/close',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,sessionId:sid}),keepalive:true})}catch{}try{sessionStorage.removeItem('nx_session_id_'+username.toLowerCase())}catch{}}if(reload)location.reload()}
 
 /* ---------- Juegos incluidos ---------- */
 const isla=[],tor=[],are=[];
@@ -147,21 +172,27 @@ box(mine,0,2,-18,1,4,1,'#9c6644');box(mine,3,2,-18,1,4,1,'#9c6644');box(mine,1.5
 for(let i=0;i<25;i++){const a=i*.46,r=5+i*.42,x=Math.cos(a)*r,z=Math.sin(a)*r,y=.7+i*.24;box(dragon,x,y,z,3,.7,3,i%5===0?'#c1121f':'#57516e');if(i%5===0)box(dragon,x,y+.6,z,.6,.6,.6,'#ffd166',1,0,'',2,1,6)}
 box(dragon,0,7,-14,7,1,7,'#3b263a');box(dragon,0,8,-14,3,1,3,'#ffd166',1,0,'',2,1,6);
 const DEF=[
-{id:'d1',n:'Parkour Infinito',h:'#parkour',lava:1,d:'Un camino infinito que se genera mientras avanzas. El suelo es lava: si lo tocas mueres y vuelves a tu spawn. Cada 10 plataformas hay un checkpoint verde.',gr:'#5c0a0a',b:[],by:'Nixora',th:'linear-gradient(135deg,#ff6b35,#7b2cbf)',sc:`const P=game.player,R=i=>{const s=Math.sin(i*127.1+311.7)*43758.5453;return s-Math.floor(s)},pf={};
-let gen=0,x=0,best=0,deaths=0;
-const add=i=>{const c=i>0&&i%10==0,top=1+i*.08,z=-6-i*4.5,w=c?5:2.6+R(i+9)*1.6;x=Math.max(-8,Math.min(8,x+(R(i)-.5)*5));
- const col=c?'#2fbf5b':'hsl('+((250+i*7)%360)+',70%,55%)',m=[game.addBlock(c?[x,top-.5,z,w,1,w,col,1,1,'',0,0,2]:[x,top-.5,z,w,1,w,col])];
- if(c){m.push(game.addBlock([x,top+1.5,z,.2,3,.2,'#ffffff',1,0]),game.addBlock([x+.55,top+2.6,z,1,.6,.1,'#2fbf5b',1,0]))}
- else if(i%4==2)m.push(game.addBlock([x,top+.8,z,.5,.5,.5,'#ffd166',1,0,'',2,1,6]));
- pf[i]=m};
-game.setSpawn(0,.25,0);game.onDie(()=>{deaths++});
-for(;gen<25;gen++)add(gen);
-game.say('🌋 El suelo es lava. Cada 10 plataformas hay un checkpoint verde. ¡El camino es infinito!');
-game.onTick(()=>{const i=Math.max(0,Math.floor((-P.p.z-6)/4.5));while(gen<i+25){add(gen);gen++}
- if(i>best){best=i;if(best%25==0)game.say('🏁 ¡Plataforma '+best+'!')}
- const cpI=Math.max(0,Math.floor((-game.spawn()[2]-6)/4.5));
- for(const k in pf)if(+k<cpI-8){pf[k].forEach(game.removeBlock);delete pf[k]}
- game.hud('🏁 '+best+' · 🚩 '+cpI+' · 🪙 '+game.coins()+' · 💀 '+deaths)});`},
+{id:'d1',n:'Parkour Infinito',h:'#parkour #escalada #infinito',lava:1,d:'Obby sin final con saltos, escaleras, plataformas móviles, vigas, túneles, trampolines, zonas estrechas y checkpoints cada 12 tramos.',gr:'#5c0a0a',b:[],sp:[0,.3,0],by:'Nixora',th:'linear-gradient(135deg,#ff6b35,#7b2cbf)',sc:`const P=game.player,R=i=>{const s=Math.sin(i*127.1+311.7)*43758.5453;return s-Math.floor(s)},pf={};
+let gen=0,best=0,deaths=0;
+const add=i=>{const phase=i%12,level=1+Math.floor(i/12)*2.2+(phase>=6?2.2:0),top=level,z=-6-i*4.5,x=Math.max(-8,Math.min(8,(R(i)-.5)*11)),w=phase===7?1.15:phase===0?4.2:2.5+R(i+9)*1.2;
+ const list=[],color=phase===11?'#2fbf5b':'hsl('+((250+i*11)%360)+',72%,58%)';
+ const addP=(b)=>list.push(game.addBlock(b));
+ addP([x,top-.3,z,w,.6,phase===8?4.2:3,color]);
+ if(phase===2){game.moveBlock(list[0],'x',2.5,1.2+R(i)*1.2);addP([x-3,top-.2,z-.8,1.3,.4,1.3,'#00e5ff'])}
+ if(phase===3){addP([x+1.5,top+.15,z-2,1,.3,1,'#ff8fab']);addP([x-1.3,top+.3,z-4,1,.3,1,'#ffd166'])}
+ if(phase===4){addP([x-1.15,top+.8,z, .35,1.6,2.5,'#e63946',1,1,'',0,0,3]);addP([x+1.15,top+.8,z,.35,1.6,2.5,'#e63946',1,1,'',0,0,3])}
+ if(phase===5){const ladder=game.ladder(x,top,z-2.1,2.2);list.push(ladder);addP([x,top+1.9,z-4.1,3.6,.6,3,'#a8dadc'])}
+ if(phase===6){addP([x,top+.9,z,.9,.5,.9,'#ff00aa',1,0,'',2,0,4])}
+ if(phase===8){addP([x-1.35,top+1.45,z, .3,2.3,3,'#6c757d']);addP([x+1.35,top+1.45,z,.3,2.3,3,'#6c757d']);addP([x,top+2.65,z,3,.3,3,'#6c757d',1,0])}
+ if(phase===9){addP([x,top+.35,z-2.2,1.3,.7,1.3,'#00e5ff']);addP([x,top+.7,z-3.9,1,.9,1,'#00e5ff'])}
+ if(phase===10){addP([x,top+.6,z,.6,.6,.6,'#ffd166',1,0,'',2,0,6])}
+ if(phase===11){addP([x,top+.9,z-1.5,.25,1.8,.25,'#ffffff',1,0]);addP([x+.55,top+2,z-1.5,1.2,.5,.1,'#2fbf5b',1,0]);}
+ if(phase===0||phase===11){addP([x,top-.095,z,5,.25,5,'#2fbf5b',1,0,'',0,0,2])}
+ pf[i]=list};
+game.setSpawn(0,.3,0);game.onDie(()=>{deaths++});
+for(;gen<26;gen++)add(gen);
+game.say('🏁 Obby infinito: salta, escala con W, cruza vigas, evita paredes rojas y usa checkpoints. ¡Cada tramo trae un reto distinto!');
+game.onTick(()=>{const i=Math.max(0,Math.floor((-P.p.z-6)/4.5));while(gen<i+28){add(gen);gen++}if(i>best){best=i;if(best%25===0)game.say('🏁 ¡Tramo '+best+'! Sigue avanzando.')}const cpI=Math.max(0,Math.floor(i/12)*12);for(const key in pf)if(+key<i-15){pf[key].forEach(o=>{if(o&&o.isLadder)game.removeLadder(o);else game.removeBlock(o)});delete pf[key]}game.hud('🏁 Tramo '+best+' · 🚩 '+cpI+' · 🪙 '+game.coins()+' · 💀 '+deaths+' · W en las escaleras')});`},
 {id:'d2',n:'Isla Bloques',h:'#exploración',d:'Isla con ciclo de día y noche, animales, casita con tesoro, faro, estanque y 8 gemas escondidas.',gr:'#4cc26a',b:isla,by:'Nixora',th:'linear-gradient(135deg,#4cc26a,#1d6b3a)',sc:`const P=game.player,K=[];let n=0;
 for(let i=0;i<40;i++){const a=i*2.4,r=5+i%9;game.addBlock([Math.cos(a)*r,.15,Math.sin(a)*r,.3,.3,.3,['#ff6b6b','#ffd166','#ffffff'][i%3],1,0])}
 for(let i=0;i<8;i++){const a=i*.785+.3;K.push(game.addBlock([Math.cos(a)*10,.6,Math.sin(a)*10,.5,.5,.5,'#00e5ff',1,0]))}
@@ -176,15 +207,26 @@ game.onDie(()=>game.say('💀 Caíste. Vuelves al último checkpoint.'));
 game.onTick((dt,t)=>{if(t0===null)t0=t;game.hud('⬆ '+P.p.y.toFixed(1)+' m · ⏱ '+((t-t0)|0)+'s')});`},
 {id:'d4',n:'Arena de Batalla',h:'#batalla',d:'Te dan una espada y enfrentas oleadas con enemigos rápidos, grandes y un jefe cada 5 oleadas. Recoge corazones para curarte.',gr:'#2b2d42',b:are,by:'Nixora',th:'linear-gradient(135deg,#c1121f,#3a0ca3)',sc:`let wv=0,alive=0,kills=0;game.sword();game.say('⚔ Te dieron una espada: ataca con F o clic. Recoge ❤ para curarte.');
 const R=()=>(Math.random()-.5)*30;
-const spawn=()=>{wv++;const boss=wv%5==0,n=boss?1:2+wv*2;
- for(let i=0;i<n;i++){const a=i/n*6.28;alive++;game.mob(Math.cos(a)*14,Math.sin(a)*14,{hp:boss?150+wv*15:20+wv*8,size:boss?2.2:(i%3==0?1.3:.9),speed:boss?2.2:1.8+wv*.25+(i%3==1?1:0),dmg:boss?18:4+wv*2,color:boss?'#111111':(i%3==0?'#7b2cbf':'#c1121f')})}
+const spawn=()=>{wv++;const boss=wv%5==0,n=boss?1:Math.min(18,2+wv*2);
+ for(let i=0;i<n;i++){const a=i/n*6.28;alive++;game.mob(Math.cos(a)*14,Math.sin(a)*14,{hp:boss?150+wv*15:20+wv*8,size:boss?2.2:(i%3==0?1.3:.9),speed:boss?2.2:Math.min(4.8,1.8+wv*.1+(i%3==1?1:0)),dmg:boss?18:4+wv*2,color:boss?'#111111':(i%3==0?'#7b2cbf':'#c1121f')})}
  if(wv>1)game.addBlock([R(),.6,R(),.5,.5,.5,'#ff4d6d',1,0,'',2,1,8]);
  game.say(boss?'👹 ¡Jefe! Oleada '+wv:'🌊 Oleada '+wv)};
 game.onKill(()=>{alive--;kills++;game.sound('Explosión');if(!alive)setTimeout(spawn,2500)});
 spawn();game.onTick(()=>game.hud('Oleada '+wv+' · Bajas '+kills+' · Enemigos '+alive));`},
 {id:'d5',n:'Laberinto Esmeralda',h:'#laberinto',d:'Un laberinto generado al azar. Encuentra las monedas escondidas y llega a la baldosa dorada del fondo.',gr:'#1b4332',b:maze,sp:[0,.05,0],by:'Nixora',th:'linear-gradient(135deg,#2d6a4f,#95d5b2)',sc:`game.say('🌿 Encuentra la salida dorada del laberinto.');game.onTick(()=>game.hud('🪙 '+game.coins()+' monedas'))`},
 {id:'d6',n:'Ciudad Neón',h:'#ciudad',d:'Una ciudad de neón de noche con trampolines para saltar a los techos, aceleradores en las avenidas y monedas en los edificios.',gr:'#0b0b1a',b:city,sp:[0,.05,7],st:{clock:22,clouds:0},by:'Nixora',th:'linear-gradient(135deg,#ff00aa,#00e5ff)',sc:`game.say('🌃 Usa los trampolines rosas y los aceleradores azules. ¡Junta las monedas!');game.onTick(()=>game.hud('🪙 '+game.coins()))`},
-{id:'d7',n:'Carrera de Obstáculos',h:'#obby',lava:1,d:'Obby de 30 etapas sobre lava: tablones angostos, ladrillos asesinos, trampolines, aceleradores y checkpoints. Meta dorada al final.',gr:'#5c0a0a',b:obby,by:'Nixora',th:'linear-gradient(135deg,#ff6b35,#2fbf5b)',sc:`game.say('🏁 Evita los ladrillos rojos. Checkpoints verdes cada 6 etapas.');game.onDie(()=>game.say('💀 ¡Otra vez!'));game.onTick(()=>game.hud('🏁 Etapa '+Math.max(0,Math.floor((-game.player.p.z-6)/5))+'/30'))`},
+{id:'d7',n:'Carrera de Obstáculos',h:'#obby #carrera #infinito',lava:1,d:'Carrera de obstáculos interminable con balancines, escaleras, pasarelas angostas, túneles, plataformas móviles, trampolines y checkpoints.',gr:'#5c0a0a',b:[],sp:[0,.3,0],by:'Nixora',th:'linear-gradient(135deg,#ff6b35,#2fbf5b)',sc:`const P=game.player,R=i=>{const a=Math.sin(i*91.7+17.3)*43758.5453;return a-Math.floor(a)},parts={};let n=0,best=0,deaths=0;
+function stage(i){const z=-6-i*5,x=Math.max(-10,Math.min(10,(R(i)-.5)*12)),phase=i%10,y=.9+Math.floor(i/10)*1.2,list=[];const put=b=>list.push(game.addBlock(b));
+ put([x,y-.3,z,phase===4?1.1:phase===7?4.5:2.7,.6,3,phase===9?'#2fbf5b':'hsl('+((i*23)%360)+',78%,56%)']);
+ if(phase===1){const moving=put([x+2,y-.15,z-2,1.7,.3,1.7,'#00e5ff']);game.moveBlock(moving,'x',3,1.6)}
+ if(phase===2){put([x-.9,y+.5,z,.25,1,.3,'#e63946',1,1,'',0,0,3]);put([x+.9,y+.5,z,.25,1,.3,'#e63946',1,1,'',0,0,3]);put([x,y+1,z,.3,.25,3,'#e63946',1,1,'',0,0,3])}
+ if(phase===3){const ladder=game.ladder(x,y,z-1.8,1.2);list.push(ladder);put([x,y+.9,z-3.8,3,.6,2,'#a8dadc'])}
+ if(phase===4){put([x,y+.8,z,4,.25,.45,'#f1fa8c']);put([x,y+1.3,z-1.7,4,.25,.45,'#f1fa8c'])}
+ if(phase===5){put([x-1.1,y+.6,z,.25,1.2,2.8,'#6c757d']);put([x+1.1,y+.6,z,.25,1.2,2.8,'#6c757d'])}
+ if(phase===6){put([x,y+.8,z,.8,.6,.8,'#ff00aa',1,0,'',2,0,4])}
+ if(phase===8){put([x,y+.35,z-2,.5,.5,.5,'#ffd166',1,0,'',2,0,6]);put([x+.7,y+.35,z-3,.5,.5,.5,'#ffd166',1,0,'',2,0,6])}
+ if(phase===9){put([x,y+1.4,z,.25,2.8,.25,'#fff',1,0]);put([x+.5,y+2.7,z,1.2,.5,.1,'#2fbf5b',1,0]);put([x,y-.095,z,5,.25,5,'#2fbf5b',1,0,'',0,0,2])}parts[i]=list}
+game.setSpawn(0,.3,0);game.onDie(()=>deaths++);for(;n<30;n++)stage(n);game.say('🏃 Carrera infinita: avanza, escala con W cuando encuentres una escalera, y busca checkpoints verdes.');game.onTick(()=>{const i=Math.max(0,Math.floor((-P.p.z-6)/5));while(n<i+32){stage(n);n++}best=Math.max(best,i);for(const k in parts)if(+k<i-18){parts[k].forEach(o=>{if(o&&o.isLadder)game.removeLadder(o);else game.removeBlock(o)});delete parts[k]}game.hud('🏃 Tramo '+best+' · 🚩 '+Math.floor(best/10)*10+' · 💀 '+deaths+' · 🪙 '+game.coins())})`},
 {id:'d8',n:'Pueblo Medieval',h:'#pueblo',d:'Un pueblo con casas, pozo, bosque, animales y un castillo con tesoro en lo alto. Tiene ciclo de día y noche.',gr:'#4a7c3a',b:vil,by:'Nixora',th:'linear-gradient(135deg,#b08968,#4a7c3a)',sc:`game.say('🏘 Explora el pueblo y sube al castillo del norte.');for(let i=0;i<8;i++)game.mob(Math.cos(i)*14,Math.sin(i)*14,{peaceful:true,speed:1,size:.6+i%3*.15,color:['#ffffff','#f4a261','#8d99ae'][i%3]});`+DAYNIGHT+`game.onTick(()=>game.hud('🪙 '+game.coins()))`},
 {id:'d9',n:'Espacio Gravedad Baja',h:'#espacio',lava:1,d:'Plataformas flotantes en espiral con gravedad baja. Cae en el vacío de plasma y vuelves al checkpoint. Meta dorada arriba.',gr:'#2b1055',b:space,st:{grav:8,clock:0,clouds:0},by:'Nixora',th:'linear-gradient(135deg,#240046,#7b2cbf)',sc:`game.say('🚀 Gravedad baja: ¡salta lejos! Cuidado con el plasma.');game.onTick(()=>game.hud('⬆ '+game.player.p.y.toFixed(1)+' m · 🪙 '+game.coins()))`},
 {id:'d10',n:'Bosque Encantado',h:'#bosque',d:'Un bosque de noche con luciérnagas que son monedas, círculo de piedras y venados pacíficos. Busca el tesoro dorado en el centro.',gr:'#14301a',b:forest,st:{clock:21},by:'Nixora',th:'linear-gradient(135deg,#1b5e20,#b5ff4d)',sc:`game.say('🌲 Sigue las luciérnagas verdes.');for(let i=0;i<7;i++)game.mob(Math.cos(i*.9)*18,Math.sin(i*.9)*18,{peaceful:true,speed:1.2,size:.9,color:'#8d6e63'});game.onTick(()=>game.hud('✨ '+game.coins()+' luciérnagas'))`},
@@ -197,7 +239,7 @@ game.onKill(()=>{alive--;kills++;game.sound('Explosión');if(!alive){if(wv==10)g
 {id:'d15',n:'Ruta de Cristal',h:'#parkour #cristal',d:'Cruza una ruta de plataformas brillantes sobre el vacío y recoge cristales de energía.',gr:'#101936',b:moon,sp:[0,.2,0],by:'Nixora',th:'linear-gradient(135deg,#00e5ff,#273469)',sc:`game.say('💎 Cruza la ruta y recoge los cristales.');game.onTick(()=>game.hud('🪙 '+game.coins()+' cristales'))`},
 {id:'d16',n:'Islas Dulces',h:'#aventura #exploración',d:'Salta por islas de colores pastel y encuentra los objetos brillantes.',gr:'#ffd6e0',b:candy,sp:[0,.2,0],by:'Nixora',th:'linear-gradient(135deg,#ff8fab,#ffd166)',sc:`game.say('🍬 Explora las islas dulces y encuentra sus monedas.');game.onTick(()=>game.hud('🍬 '+game.coins()+' dulces'))`},
 {id:'d17',n:'Volcán Obsidiana',h:'#volcan #aventura',d:'Escala una espiral de roca volcánica, cruza plataformas calientes y llega al cráter dorado.',gr:'#351c2d',b:volcano,sp:[0,.3,0],lava:1,by:'Nixora',th:'linear-gradient(135deg,#ff5400,#3c1642)',sc:`let best=0;game.say('🌋 Sube la espiral volcánica y busca los fragmentos dorados.');game.onDie(()=>game.say('🔥 El calor te devolvió al inicio.'));game.onTick(()=>{best=Math.max(best,Math.floor(game.player.p.y));game.hud('🌋 Altura '+best+' · 🪙 '+game.coins())})`},
-{id:'d18',n:'Arrecife Azul',h:'#mar #exploracion',d:'Explora un arrecife brillante, descubre el barco hundido y recoge perlas entre los corales.',gr:'#0b3954',b:reef,st:{clock:12,grav:18,clouds:0,sky:'#168aad'},sp:[0,.2,0],by:'Nixora',th:'linear-gradient(135deg,#00b4d8,#0077b6)',sc:`game.say('🐠 Explora el barco hundido y recoge perlas luminosas.');for(let i=0;i<9;i++)game.mob(Math.cos(i*.7)*12,Math.sin(i*.7)*12,{peaceful:true,size:.55+i%3*.12,speed:1.3,color:['#ff6b8a','#ffd166','#80ffdb'][i%3]});game.onTick(()=>game.hud('🫧 Perlas: '+game.coins()))`},
+{id:'d18',n:'Arrecife Azul',h:'#mar #exploracion',d:'Explora un arrecife brillante, descubre el barco hundido y recoge perlas entre los corales.',gr:'#0b3954',b:reef,st:{clock:12,grav:18,clouds:0,sky:'#168aad'},sp:[0,.2,0],by:'Nixora',th:'linear-gradient(135deg,#00b4d8,#0077b6)',sc:`game.water(0,3,0,400,8,400,true);game.say('🐠 Explora el barco hundido y recoge perlas luminosas. Usa W/A/S/D para nadar y Espacio para subir.');for(let i=0;i<9;i++)game.mob(Math.cos(i*.7)*12,Math.sin(i*.7)*12,{peaceful:true,size:.55+i%3*.12,speed:1.3,color:['#ff6b8a','#ffd166','#80ffdb'][i%3]});game.onTick(()=>game.hud('🫧 Perlas: '+game.coins()))`},
 {id:'d19',n:'Circuito Turbo',h:'#carreras #velocidad',d:'Corre por una pista técnica con carriles de neón, aceleradores y una línea de meta.',gr:'#181a2d',b:speedway,sp:[0,.2,1],st:{walk:9,clock:21,clouds:0,sky:'#0a0f2c'},by:'Nixora',th:'linear-gradient(135deg,#00f5d4,#5a189a)',sc:`let t0=0,started=false;game.say('🏎 Pasa por los aceleradores cian y alcanza la meta al final de la pista.');game.onTick((dt,t)=>{if(!started){t0=t;started=true}game.hud('⏱ '+(t-t0|0)+'s · 🪙 '+game.coins())})`},
 {id:'d20',n:'Valle Granjero',h:'#granja #coleccion',d:'Recorre los sembrados, visita el granero y busca las cosechas doradas del valle.',gr:'#618b32',b:farm,sp:[0,.2,0],st:{clock:10},by:'Nixora',th:'linear-gradient(135deg,#90be6d,#d9a441)',sc:`game.say('🌾 Recorre las hileras y busca las cosechas doradas.');for(let i=0;i<7;i++)game.mob(-10+Math.cos(i)*8,7+Math.sin(i)*8,{peaceful:true,speed:.7,size:.8,color:'#f4f1de'});game.onTick(()=>game.hud('🌽 Cosecha: '+game.coins()))`},
 {id:'d21',n:'Fábrica Mecánica',h:'#desafio #maquinas',d:'Cruza una fábrica de plataformas, vigas, trampas rojas y módulos de energía.',gr:'#424751',b:factory,sp:[0,.2,12],st:{clock:18,clouds:0},by:'Nixora',th:'linear-gradient(135deg,#495057,#e63946)',sc:`game.say('⚙️ Evita las zonas rojas, usa las plataformas metálicas y recoge energía.');let t=0;game.onTick((dt)=>{t+=dt;game.hud('⚙️ Tiempo '+(t|0)+'s · Energía '+game.coins())})`},
@@ -322,13 +364,15 @@ function mk(s){if(s&&s.mcSkin)return mkMinecraft(s);s=CHO[s.ch|0]?{...s,...CHO[s
  if(s.acc==9)bx(g,.5,.1,.5,'#e63946',0,1.34,0);
  if(s.acc==10){bx(g,.03,.3,.03,'#ddd',-.1,1.95,0);bx(g,.03,.3,.03,'#ddd',.1,1.95,0)}
  g.userData=u;return g}
-const anim=(e,t,dt)=>{const m=e.m,u=m.userData,L=(a,b,k)=>a+(b-a)*Math.min(1,k*dt),P=e.pk||{},W=wp(P.aw|0),J=jp(P.aj|0),K=cpk(P.ac|0);
- e.sw=L(e.sw||0,e.sp,10);e.ph=(e.ph||0)+dt*(5+e.sp*7)*W.f;e.ja=L(e.ja||0,e.g?0:1,12);e.ca=L(e.ca||0,e.cr?1:0,10);
+const anim=(e,t,dt)=>{const m=e.m,u=m.userData,L=(a,b,k)=>a+(b-a)*Math.min(1,k*dt),P=e.pk||{},W=wp(P.aw|0),J=jp(P.aj|0),K=cpk(P.ac|0),SW=spk(P.as|0),CL=lpk(P.al|0);
+ e.sw=L(e.sw||0,e.sp,10);e.ph=(e.ph||0)+dt*(5+e.sp*7)*W.f;e.ja=L(e.ja||0,e.g?0:1,12);e.ca=L(e.ca||0,e.cr?1:0,10);e.swimMix=L(e.swimMix||0,e.swimming?1:0,5);e.climbMix=L(e.climbMix||0,e.climbing?1:0,7);
  if(e.g&&!e.wg)e.sq=1;e.wg=e.g;e.sq=L(e.sq||0,0,9);
  const w=Math.sin(e.ph)*e.sw*(1-e.ja),s=W.ph?-1:1,idle=Math.sin(t*2)*.05*(1-e.sw),a=J.ax*e.ja+K.ax*e.ca;
- u.ra.rotation.x=w*W.aa*s+a+idle+(e.ax||0);u.la.rotation.x=-w*W.aa*s+a-idle;u.ra.rotation.z=J.az*e.ja;u.la.rotation.z=-J.az*e.ja;
- u.rl.rotation.x=-w*W.la+J.lx*e.ja;u.ll.rotation.x=w*W.la+J.ly*e.ja;u.rl.rotation.z=K.lx*e.ca;u.ll.rotation.z=-K.lx*e.ca;
- m.scale.y=1-K.dp*e.ca-.12*e.sq+J.st*e.ja;m.rotation.z=Math.sin(e.ph)*W.sw*e.sw;m.position.y+=Math.abs(Math.sin(e.ph))*W.bn*e.sw;e.so=L(e.so||0,0,14);m.position.y+=e.so;
+ let rax=w*W.aa*s+a+idle+(e.ax||0),lax=-w*W.aa*s+a-idle,rlx=-w*W.la+J.lx*e.ja,llx=w*W.la+J.ly*e.ja,raz=J.az*e.ja,laz=-J.az*e.ja;
+ if(e.swimMix>0){const phase=t*SW.rate+e.ph*.2,mix=e.swimMix;rax=rax*(1-mix)+Math.sin(phase)*SW.arm*mix;lax=lax*(1-mix)-Math.sin(phase+1.2)*SW.arm*mix;rlx=rlx*(1-mix)+Math.sin(phase+Math.PI)*SW.leg*mix;llx=llx*(1-mix)-Math.sin(phase+Math.PI+1.1)*SW.leg*mix;raz+=(Math.cos(phase)*.12)*mix;laz-=(Math.cos(phase+1.2)*.12)*mix;m.rotation.x+=(SW.tilt*mix-m.rotation.x)*Math.min(1,dt*3)}
+ if(e.climbMix>0){const phase=t*CL.rate,mix=e.climbMix;rax=rax*(1-mix)+Math.sin(phase)*CL.arm*mix;lax=lax*(1-mix)-Math.sin(phase)*CL.arm*mix;rlx=rlx*(1-mix)-Math.sin(phase)*CL.leg*mix;llx=llx*(1-mix)+Math.sin(phase)*CL.leg*mix;m.rotation.x+=(CL.lean*mix-m.rotation.x)*Math.min(1,dt*4)}else if(e.swimMix<=0)m.rotation.x*=Math.max(0,1-dt*4);
+ u.ra.rotation.x=rax;u.la.rotation.x=lax;u.ra.rotation.z=raz;u.la.rotation.z=laz;u.rl.rotation.x=rlx;u.ll.rotation.x=llx;u.rl.rotation.z=K.lx*e.ca;u.ll.rotation.z=-K.lx*e.ca;
+ m.scale.y=1-K.dp*e.ca-.12*e.sq+J.st*e.ja;m.rotation.z=Math.sin(e.ph)*W.sw*e.sw;e.so=L(e.so||0,0,14);m.position.y+=e.so;
  if(e.ty!=null){let d=(e.ty-m.rotation.y)%(2*Math.PI);if(d>Math.PI)d-=2*Math.PI;if(d<-Math.PI)d+=2*Math.PI;m.rotation.y+=d*Math.min(1,dt*14)}};
 
 /* ---------- Avatar y tienda gratuita ---------- */
@@ -345,20 +389,46 @@ presetPet=n=>{const r=rg(n+5000);return{n:AN1[(n+3)%10]+' '+['Minion','Cubo','Ro
 let GK=0,GP=0;
 function galHTML(){const L=GK?presetPet:presetAv;return `<p>${[0,1].map(k=>`<button class="${GK==k?'':'s'}" onclick="GK=${k};GP=0;avatar()">${k?'Mascotas':'Avatares'}</button>`).join(' ')} <button class="s" onclick="GP=Math.max(0,GP-1);avatar()">◀</button> Página ${GP+1}/38 <button class="s" onclick="GP=Math.min(37,GP+1);avatar()">▶</button></p><div style="display:flex;flex-wrap:wrap;gap:6px">${Array.from({length:24},(_,i)=>{const n=GP*24+i;if(n>=900)return'';const a=L(n),c=GK?[a.petC]:[a.skin,a.shirt,a.pants,a.hair];return `<button class="s" style="width:112px;padding:6px;font-size:12px" onclick="eq(${n})"><span style="display:flex;height:14px;margin-bottom:4px">${c.map(x=>`<i style="flex:1;background:${x}"></i>`).join('')}</span>${a.n}<br>${own()['g'+GK+':'+n]?'Tuyo':'💵 '+(GK?25:30)}</button>`}).join('')}</div>`}
 function eq(n){const k='g'+GK+':'+n,p=GK?25:30;if(!own()[k]){if(!can('Tienda gratis')){if(nd()<p){alert('Necesitas '+p+' Nixdollar (tienes '+nd()+')');return}addND(me,-p)}own()[k]=1;updWallet()}const o=GK?presetPet(n):presetAv(n);delete o.n;if(GK){A().petC=o.petC;A().petA=o.petA;A().petT=o.petT}else Object.assign(A(),o);save();avatar()}
-const CK=['skin','hair','shirt','pants','petC'],NK=['eyes','mouth','hairT','top','bot','acc','pet','petA','ch','petT','aw','aj','ac'];
+const CK=['skin','hair','shirt','pants','petC'],NK=['eyes','mouth','hairT','top','bot','acc','pet','petA','ch','petT','aw','aj','ac','as','al'];
 function applyAv(o){if(!o||typeof o!='object')return;CK.forEach(k=>{if(/^#[0-9a-f]{6}$/i.test(o[k]))A()[k]=o[k]});NK.forEach(k=>{if(Number.isInteger(o[k])&&o[k]>=0&&o[k]<100)A()[k]=o[k]});if(typeof o.mcSkin==='string'&&o.mcSkin.startsWith('data:image/png;base64,')&&o.mcSkin.length<3000000){A().mcSkin=o.mcSkin;A().mcSkinLegacy=!!o.mcSkinLegacy;A().mcHasLayers=!!o.mcHasLayers;if(A().mcHasLayers){A().mcPreviousAcc=Number.isInteger(A().acc)?A().acc:0;A().acc=0}}save()}
 const dl=(n,t)=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'application/json'}));a.download=n;a.click()},
 rd=(i,f)=>{const x=i.files[0];if(!x)return;const r=new FileReader();r.onload=()=>{try{f(JSON.parse(r.result))}catch(e){}};r.readAsText(x)},
 expA=()=>dl('avatar-'+me+'.json',JSON.stringify(A())),impA=i=>rd(i,o=>{applyAv(o);avatar()});
 async function importMinecraftSkin(input){const file=input&&input.files&&input.files[0];if(!file)return;input.value='';if((file.type&&file.type!=='image/png')&&!/\.png$/i.test(file.name))return alert('Selecciona una imagen PNG de skin de Minecraft.');if(file.size>5*1024*1024)return alert('La imagen es demasiado grande. Usa una skin PNG de hasta 5 MB.');let img,url;try{url=URL.createObjectURL(file);img=await new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=()=>reject(new Error('No se pudo leer la imagen'));im.src=url})}catch(e){if(url)URL.revokeObjectURL(url);return alert('No se pudo abrir la imagen. Comprueba que sea un PNG válido.')}finally{if(url)URL.revokeObjectURL(url)}const w=img.naturalWidth,h=img.naturalHeight,scale=w/64,legacy=h===w/2;if(!Number.isInteger(scale)||scale<1||scale>4||!(h===w||legacy))return alert('Formato no compatible. Usa una skin cuadrada de 64×64 (también se aceptan 128×128 o 256×256) o una skin clásica 64×32 (también 128×64).');const canvas=document.createElement('canvas');canvas.width=64;canvas.height=64;const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.clearRect(0,0,64,64);ctx.imageSmoothingEnabled=false;ctx.drawImage(img,0,0,64,legacy?32:64);let hasLayers=false;if(!legacy){const pixels=ctx.getImageData(0,0,64,64).data,regions=[[32,0,32,16],[0,32,16,16],[16,32,24,16],[40,32,16,16],[0,48,16,16],[48,48,16,16]];outer:for(const [rx,ry,rw,rh] of regions)for(let y=ry;y<ry+rh;y++)for(let x=rx;x<rx+rw;x++)if(pixels[(y*64+x)*4+3]>0){hasLayers=true;break outer}}const a=A();if(a.mcSkin&&a.mcHasLayers&&Number.isInteger(a.mcPreviousAcc))a.acc=a.mcPreviousAcc;delete a.mcSkin;delete a.mcSkinLegacy;delete a.mcHasLayers;delete a.mcPreviousAcc;a.mcSkin=canvas.toDataURL('image/png');a.mcSkinLegacy=legacy;a.mcHasLayers=hasLayers;if(hasLayers){a.mcPreviousAcc=Number.isInteger(a.acc)?a.acc:0;a.acc=0}save();avatar();alert('✅ Skin de Minecraft aplicada al avatar.'+(legacy?' Formato clásico 64×32.':'')+(hasLayers?' Se detectaron capas exteriores y se desactivaron los accesorios de Nixora.':' No se detectaron píxeles visibles en las capas exteriores.'))}
 function removeMinecraftSkin(){const a=A();if(a.mcHasLayers&&Number.isInteger(a.mcPreviousAcc))a.acc=a.mcPreviousAcc;delete a.mcSkin;delete a.mcSkinLegacy;delete a.mcHasLayers;delete a.mcPreviousAcc;save();avatar()}
+
+// NPCs use a small procedural Minecraft-compatible texture, with a real head/body/limb UV layout.
+const NPC_SKIN_CACHE=new Map();
+function npcMinecraftSkin(seed=1,accent='#8b5cf6'){
+ const cacheKey=(seed|0)+'|'+accent;if(NPC_SKIN_CACHE.has(cacheKey))return NPC_SKIN_CACHE.get(cacheKey);
+ const c=document.createElement('canvas');c.width=64;c.height=64;const x=c.getContext('2d');x.clearRect(0,0,64,64);
+ const palette=['#edc29b','#c68642','#8d5524','#e0ac69','#f1d4b7','#6e4428'],skin=palette[Math.abs(seed*13)%palette.length],hair=['#2b2118','#171717','#593d2b','#bc6c25','#4a4e69'][Math.abs(seed*7)%5],pants=['#20304a','#3a506b','#343a40','#5c3d2e'][Math.abs(seed*5)%4],shirt=accent&&/^#[0-9a-f]{6}$/i.test(accent)?accent:'#8b5cf6';
+ const rect=(a,b,w,h,col)=>{x.fillStyle=col;x.fillRect(a,b,w,h)};
+ // Head base, face, hair and pixel face features.
+ rect(0,0,32,16,skin);rect(8,8,8,8,skin);rect(0,0,32,7,hair);rect(8,8,8,2,hair);rect(8,10,2,1,'#fff');rect(13,10,2,1,'#fff');rect(9,11,1,2,'#263238');rect(14,11,1,2,'#263238');rect(10,14,4,1,'#8c3d37');
+ // Torso and legs: base layer regions used by the Minecraft skin UV convention.
+ rect(16,16,16,16,shirt);rect(20,20,8,12,shirt);rect(20,23,2,6,'#ffffff');rect(24,23,2,6,'#ffffff');rect(0,16,16,16,shirt);rect(40,16,16,16,skin);rect(44,20,4,12,skin);
+ rect(0,16,16,16,shirt);rect(4,20,4,12,pants);rect(8,20,4,12,pants);rect(16,48,16,16,pants);rect(20,52,4,12,pants);rect(24,52,4,12,pants);
+ // Left arm/leg base regions.
+ rect(32,48,16,16,skin);rect(36,52,4,12,skin);rect(40,52,4,12,skin);rect(16,48,16,16,pants);rect(20,52,4,12,pants);rect(24,52,4,12,pants);
+ // Transparent outer layers: hair/hood and jacket cuffs, like standard skin layers.
+ rect(32,0,32,8,'#00000000');rect(40,0,8,8,hair);rect(32,8,8,8,hair);rect(48,8,8,8,hair);
+ rect(16,32,16,16,'#00000000');rect(20,36,8,12,shirt);rect(20,36,2,12,'#00000000');rect(26,36,2,12,'#00000000');
+ rect(40,32,16,16,'#00000000');rect(44,36,4,12,shirt);rect(48,32,16,16,'#00000000');rect(52,52,4,12,'#00000000');
+ const url=c.toDataURL('image/png');if(NPC_SKIN_CACHE.size>60)NPC_SKIN_CACHE.delete(NPC_SKIN_CACHE.keys().next().value);NPC_SKIN_CACHE.set(cacheKey,url);return url
+}
+function npcMinecraftAvatar(seed,accent){return{mcSkin:npcMinecraftSkin(seed,accent),mcSkinLegacy:false,mcHasLayers:true,skin:'#d9a781',hair:'#2b2118',shirt:accent||'#8b5cf6',pants:'#343a40',eyes:0,mouth:1,aw:(seed%9)+1,aj:0,ac:0,as:(seed%8)+1,al:(seed%8)+1}}
 const CHO={1:{skin:'#9aa5b1',eyes:1,mouth:2,hairT:0},2:{skin:'#7fb069',mouth:4,eyes:7},3:{skin:'#f4a261',hairT:0},4:{skin:'#e9ecef'},5:{skin:'#f1f1f1',eyes:1,mouth:3,hairT:0},6:{},7:{shirt:'#1b1b1b',pants:'#1b1b1b'},8:{shirt:'#5a189a'},9:{top:2,pants:'#aab4c0'},10:{skin:'#7bd389'},11:{skin:'#e8e8f0',shirt:'#111111',pants:'#111111'},12:{skin:'#ffffff',pants:'#e63946'},13:{skin:'#ffd700',eyes:1,mouth:2,hairT:0}},
-PKA=['Suave','Elegante','Robótica','Zombi','Soldado','Modelo','Saltarina','Perezosa','Veloz','Pingüino','Ninja','Bailarina'],PK=Array.from({length:60},(_,i)=>i?PKA[i%12]+' '+i:'Predeterminada'),ACH={},
+PKA=['Suave','Elegante','Robótica','Zombi','Soldado','Modelo','Saltarina','Perezosa','Veloz','Pingüino','Ninja','Bailarina'],PK=Array.from({length:60},(_,i)=>i?PKA[i%12]+' '+i:'Predeterminada'),
+PKSWIM=['Suave','Crol','Braza','Delfín','Aventura','Robótica','Relajada','Rápida','Marina','Exploradora'],PKCLIMB=['Escalador','Montañista','Ninja','Roca','Cuerda','Robótica','Rápida','Cuidadosa','Aventurera','Alpinista'],
+PKS=Array.from({length:40},(_,i)=>i?PKSWIM[i%PKSWIM.length]+' '+i:'Nado predeterminado'),PKL=Array.from({length:40},(_,i)=>i?PKCLIMB[i%PKCLIMB.length]+' '+i:'Escalada predeterminada'),ACH={},
 wp=n=>ACH['w'+n]||(ACH['w'+n]=n?(r=>({f:.6+r()*1.2,aa:.3+r()*1.3,la:.3+r()*.9,ph:r()<.3,bn:r()*.1,sw:r()*.15}))(rg(n+9000)):{f:1,aa:.9,la:.9,ph:0,bn:0,sw:0}),
 jp=n=>ACH['j'+n]||(ACH['j'+n]=n?(r=>({ax:-.3-r()*2.6,az:r()*1.6-.2,lx:r()*1.4-.4,ly:r()*1.4-.7,st:r()*.12}))(rg(n+19000)):{ax:-2.5,az:0,lx:.5,ly:-.4,st:.05}),
-cpk=n=>ACH['c'+n]||(ACH['c'+n]=n?(r=>({dp:.1+r()*.25,ax:-r()*1.4,lx:r()*.5}))(rg(n+29000)):{dp:.2,ax:-.5,lx:0});
-Object.assign(SH,{ch:['Jugador','Robot','Zombi','Gato','Astronauta','Esqueleto','Pirata','Ninja','Mago','Caballero','Alien','Vampiro','Payaso','Robot Dorado'],petT:['Minion','Cubo','Robot','Fantasma','Slime','Dragoncito','Gatito','Pollito','Búho','Cohete','Calabaza','Dado'],aw:PK,aj:PK,ac:PK});
-Object.assign(TN,{ch:'Personaje',petT:'Minion: tipo',aw:'Anim. caminar',aj:'Anim. saltar',ac:'Anim. agacharse'});
+cpk=n=>ACH['c'+n]||(ACH['c'+n]=n?(r=>({dp:.1+r()*.25,ax:-r()*1.4,lx:r()*.5}))(rg(n+29000)):{dp:.2,ax:-.5,lx:0}),
+spk=n=>ACH['s'+n]||(ACH['s'+n]=n?(r=>({arm:.45+r()*1.35,leg:.12+r()*.65,tilt:.03+r()*.11,rate:2.6+r()*3.6}))(rg(n+39000)):{arm:1,leg:.38,tilt:.08,rate:3.4}),
+lpk=n=>ACH['l'+n]||(ACH['l'+n]=n?(r=>({arm:.5+r()*.9,leg:.12+r()*.55,lean:.02+r()*.12,rate:2+r()*2.5}))(rg(n+49000)):{arm:.8,leg:.3,lean:.07,rate:2.5});
+Object.assign(SH,{ch:['Jugador','Robot','Zombi','Gato','Astronauta','Esqueleto','Pirata','Ninja','Mago','Caballero','Alien','Vampiro','Payaso','Robot Dorado'],petT:['Minion','Cubo','Robot','Fantasma','Slime','Dragoncito','Gatito','Pollito','Búho','Cohete','Calabaza','Dado'],aw:PK,aj:PK,ac:PK,as:PKS,al:PKL});
+Object.assign(TN,{ch:'Personaje',petT:'Minion: tipo',aw:'Anim. caminar',aj:'Anim. saltar',ac:'Anim. agacharse',as:'Pack de nadar',al:'Pack de escalar'});
 function avatar(){PVU=null;const a=A(),b=(on,t,f)=>`<button class="${on?'':'s'}" onclick="${f}">${t}</button> `;
  $('#main').innerHTML=`<div class="av"><div id="pvh"></div><div style="flex:1;min-width:260px"><h3>🎮 Skins de Minecraft</h3><p>Importa una skin PNG para aplicarla a tu avatar de jugador. La mascota no cambia.</p><div class="rbar"><button onclick="$('#mcsf').click()">⬆ Importar skin PNG</button><button class="s" onclick="removeMinecraftSkin()" ${a.mcSkin?'':'disabled'}>Quitar skin</button><input id="mcsf" type="file" accept="image/png,.png" hidden onchange="importMinecraftSkin(this)"></div><small>${a.mcSkin?`Skin activa · ${a.mcSkinLegacy?'clásica 64×32':'moderna 64×64'} · ${a.mcHasLayers?'capas exteriores detectadas; accesorios de Nixora desactivados':'sin píxeles visibles detectados en las capas exteriores'}`:'Admite PNG 64×64 o 64×32; también tamaños dobles como 128×128 y 128×64.'}</small>${a.mcSkin?'<p class="adm-note">La skin controla los colores y la cara del avatar. Para evitar superposiciones, el pelo y la ropa de color de Nixora no se dibujan encima.</p>':''}<h3>🎨 Color</h3>${Object.keys(PT).map(k=>b(part==k,PT[k],`part='${k}';avatar()`)).join('')}<p>${b(!mode,'Paleta simple','mode=0;avatar()')}${b(mode,'Personalizado','mode=1;avatar()')}</p>${mode?`<input type="color" value="${a[part]}" oninput="setC(this.value)" style="width:140px;height:70px">`:PAL.map(c=>`<i class="sw" style="background:${c}" onclick="setC('${c}')"></i>`).join('')}<h3>🛍 Tienda (Nixdollar)</h3>${Object.keys(TN).map(k=>b(tab==k,TN[k],`tab='${k}';avatar()`)).join('')}<p>${a.mcSkin&&a.mcHasLayers&&tab==='acc'?'<small>Los accesorios de Nixora están desactivados mientras esta skin tenga capas exteriores.</small>':SH[tab].map((n,i)=>b(a[tab]==i,n+' · '+lbl(tab,i),`buy('${tab}',${i})`)).join('')}</p><button onclick="rnd()">🎲 Aleatorio</button> <button class="s" onclick="expA()">⬇ Exportar</button> <button class="s" onclick="$('#imf').click()">⬆ Importar</button><input id="imf" type="file" accept=".json" hidden onchange="impA(this)"><h3>🧬 Galería: 900 avatares y 900 mascotas</h3>${galHTML()}</div></div>`;pvw()}
 function setC(c){A()[part]=c;save();cp()}
@@ -434,6 +504,7 @@ function play(id,roomCode='',createRoom=false){
  bot=mkE(A(),2,2,'Minion',1);
  let k={},yaw=0,pitch=.4,dist=cv('dist',8),follow=cv('11_1',true),bj=0,dr=0,hooks=[],raf,last=performance.now(),t=0,fc=0,ft=0,dn_=0,ns=0,cid=0,px=0,py=0,touchPts=new Map(),pinchD=0,jumpLatch=false,mobs=[],atk=0,hasSword=0,kf=null,stp=0,boost=0,coins=0,won=0,kd2=null,nds=[],ndT=3;
  const lava=g.lava||S.lava,RL=g.b.filter(b=>b[12]),sb=g.b.find(b=>b[12]==1),SP=sb?[sb[0],sb[1]+sb[4]/2+.05,sb[2]]:(g.sp?[...g.sp]:[0,lava?.25:.05,0]);
+ const waterZones=[],waterMeshes=[],ladderZones=[],movingBlocks=[],procChunks=new Map();
  GRAV=S.grav||28;JP=S.jump||10.5;WS=S.walk||6;
  if(lava&&!sb){const pb=[SP[0],SP[1]-.15,SP[2],10,.3,10,'#3a3a5c',1,1];B.push(pb);addM(pb)}
  pl.p.set(SP[0],SP[1],SP[2]);unst(pl);
@@ -451,9 +522,42 @@ function play(id,roomCode='',createRoom=false){
    if(d.t==='wallet'&&me&&String(d.username||'').toLowerCase()===String(me).toLowerCase()&&U[me]){U[me].nd=Math.max(0,Math.floor(Number(d.balance)||0));save();updWallet();if(APO&&APT==='Economía')loadServerWallets(false)}
    if(d.t=='st'){let r=rp[d.id];if(!r){r=rp[d.id]=mkE(d.av||AV0,d.x,d.z,d.n);r.rank=d.rank||'';mkNameplate(r);r.p.set(d.x,d.y,d.z);updPl()}r.tp.set(d.x,d.y,d.z);if(d.rank&&d.rank!==r.rank){r.rank=d.rank;mkNameplate(r)}r.ry=d.ry;r.sp=d.sp;r.g=d.g;r.cr=d.cr}
    if(d.t=='bye'&&rp[d.id]){sc.remove(rp[d.id].m);delete rp[d.id];updPl()}}}catch(e){}
- const api={say:m=>say('Juego',m),player:pl,bot,scene:sc,THREE,onTick:f=>hooks.push(f),sound:snd,hud:s=>{$('#sc').textContent=s},coins:()=>coins,sky:c=>{skyM.color.set(c);cmat.color.set(c);sc.background.copy(HZ).multiply(skyM.color);sc.fog.color.copy(sc.background)},light:v=>{amb.intensity=v},spawn:()=>SP,setSpawn:(x,y,z)=>{SP[0]=x;SP[1]=y;SP[2]=z},die,onDie:f=>{kd2=f},removeBlock:m=>{const b=m.userData.b,i=B.indexOf(b);if(i>=0)B.splice(i,1);const q=RL.indexOf(b);if(q>=0)RL.splice(q,1);sc.remove(m)},addBlock:b=>{if(b[8]!==0)B.push(b);if(b[12])RL.push(b);return addM(b)},sword:()=>{hasSword=1;sw.visible=true},onKill:f=>{kf=f},
-  mob:(x,z,o={})=>{const zz=o.size||.9,m=new THREE.Mesh(new THREE.BoxGeometry(zz,zz,zz),new THREE.MeshLambertMaterial({color:o.color||'#c1121f'}));m.castShadow=true;sc.add(m);const e={m,p:new THREE.Vector3(x,o.y||0,z),hp:o.hp||30,sp:o.speed||2.5,dm:o.dmg||8,cd:0,fl:0,pc:o.peaceful,h:zz};mobs.push(e);return e}};
+ const api={say:m=>say('Juego',m),player:pl,bot,scene:sc,THREE,onTick:f=>hooks.push(f),sound:snd,hud:s=>{$('#sc').textContent=s},coins:()=>coins,sky:c=>{skyM.color.set(c);cmat.color.set(c);sc.background.copy(HZ).multiply(skyM.color);sc.fog.color.copy(sc.background)},light:v=>{amb.intensity=v},spawn:()=>SP,setSpawn:(x,y,z)=>{SP[0]=x;SP[1]=y;SP[2]=z},die,onDie:f=>{kd2=f},removeBlock:m=>{if(!m||!m.userData)return;const b=m.userData.b,i=B.indexOf(b);if(i>=0)B.splice(i,1);const q=RL.indexOf(b);if(q>=0)RL.splice(q,1);for(let j=movingBlocks.length-1;j>=0;j--)if(movingBlocks[j].mesh===m)movingBlocks.splice(j,1);sc.remove(m)},addBlock:b=>{if(b[8]!==0)B.push(b);if(b[12])RL.push(b);return addM(b)},sword:()=>{hasSword=1;sw.visible=true},onKill:f=>{kf=f},
+  water:(x,y,z,w,h,d,follow=false)=>{const zone={x,y,z,w,h,d,follow};const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshPhongMaterial({color:'#00cfe8',transparent:true,opacity:.22,depthWrite:false,side:THREE.DoubleSide}));mesh.position.set(x,y,z);mesh.renderOrder=2;sc.add(mesh);zone.mesh=mesh;waterZones.push(zone);waterMeshes.push(mesh);return zone},
+  ladder:(x,baseY,z,height=4)=>{height=Math.max(2,Math.min(12,Number(height)||4));const group=new THREE.Group(),wood=new THREE.MeshLambertMaterial({color:'#8d5524'}),rung=new THREE.MeshLambertMaterial({color:'#c9a66b'});for(const rx of [-.52,.52]){const rail=new THREE.Mesh(new THREE.BoxGeometry(.12,height,.12),wood);rail.position.set(rx,height/2,0);rail.castShadow=true;group.add(rail)}for(let yy=.3;yy<height;yy+=.48){const bar=new THREE.Mesh(new THREE.BoxGeometry(1.12,.09,.1),rung);bar.position.set(0,yy,0);group.add(bar)}group.position.set(x,baseY,z);sc.add(group);const zone={isLadder:true,x,baseY,z,height,faceZ:z+.85,group};ladderZones.push(zone);return zone},
+  removeLadder:zone=>{if(!zone||!zone.isLadder)return;sc.remove(zone.group);const i=ladderZones.indexOf(zone);if(i>=0)ladderZones.splice(i,1)},
+  moveBlock:(mesh,axis='x',range=2,speed=1)=>{if(!mesh||!mesh.userData||!mesh.userData.b)return;const b=mesh.userData.b;movingBlocks.push({mesh,b,axis,base:b[axis==='x'?0:axis==='y'?1:2],range:Math.max(.1,Math.min(10,range)),speed:Math.max(.1,Math.min(5,speed)),phase:Math.random()*Math.PI*2})},
+  mob:(x,z,o={})=>{const zz=o.size||.9,seed=(mobs.length+1)*17+Math.floor(Math.abs(x*13+z*7)),av=npcMinecraftAvatar(seed,o.color||'#c1121f'),m=mk(av);m.scale.setScalar(zz/.9);m.castShadow=true;sc.add(m);const e={m,p:new THREE.Vector3(x,o.y||0,z),hp:o.hp||30,sp:o.speed||2.5,dm:o.dmg||8,cd:0,fl:0,pc:o.peaceful,h:zz,character:true,pk:av,g:true,swimming:false,climbing:false,baseScale:zz/.9};mobs.push(e);return e}};
  GAME={api,pl,mobs,cl,SP,sc,nds};try{new Function('game',g.sc||'')(api)}catch(e){say('Error en script',e.message)}
+ if(g.id==='d2')api.water(8,.7,-8,7,1.4,7,false);
+ if(g.id==='d18'&&!waterZones.length)api.water(0,3,0,400,8,400,true);
+ // Procedural outer world: each map extends using matching terrain and themed, walkable locations.
+ const infiniteCourse=['d1','d7'].includes(g.id);
+ const hashRand=(a,b,i=0)=>{const n=Math.sin(a*127.1+b*311.7+i*74.7+String(g.id).split('').reduce((v,c)=>v+c.charCodeAt(0),0))*43758.5453;return n-Math.floor(n)};
+ const groundColor=g.gr||'#4c956c';
+ function makeProcBlock(block,list,visualOnly=false){if(block[8]!==0&&!visualOnly)B.push(block);if(block[12])RL.push(block);const mesh=addM(block);if(list)list.push(block);return mesh}
+ function chunkBuild(cx,cz){const key=cx+','+cz;if(procChunks.has(key)||infiniteCourse&&Math.abs(cx)<=1&&Math.abs(cz)<=1)return;
+  const x=cx*28,z=cz*28,far=Math.abs(cx)>1||Math.abs(cz)>1,blocks=[];
+  if(lava){makeProcBlock([x,.12,z,12,.24,12,groundColor,1,1,'',0,0,0],blocks);makeProcBlock([x,.1,z-13.5,3,.2,15,groundColor,1,1,'',0,0,0],blocks);makeProcBlock([x+13.5,.1,z,15,.2,3,groundColor,1,1,'',0,0,0],blocks)}
+  else makeProcBlock([x,-.25,z,28,.5,28,groundColor,1,1,'',0,0,0],blocks);
+  // Simple paths avoid clutter in the near ring so each existing hand-built spawn stays readable.
+  if(far){const type=/d6|d21|d24/.test(g.id)?'city':/d11/.test(g.id)?'desert':/d12/.test(g.id)?'snow':/d18/.test(g.id)?'sea':/d9|d15|d25/.test(g.id)?'space':/d5|d14|d26|d27/.test(g.id)?'ruins':/d20|d2|d8|d10/.test(g.id)?'nature':'village';
+   const make=(xx,yy,zz,ww,hh,dd,col,solid=true,kind=0,flag=0)=>makeProcBlock([xx,yy,zz,ww,hh,dd,col,1,solid?1:0,'',kind,0,flag],blocks,!solid);
+   const rnd=i=>hashRand(cx,cz,i),count=4+(rnd(3)*4|0);
+   for(let i=0;i<count;i++){const px=x+(rnd(i+8)-.5)*22,pz=z+(rnd(i+28)-.5)*22;if(Math.hypot(px-pl.p.x,pz-pl.p.z)<7)continue;
+    if(type==='city'){const h=4+Math.floor(rnd(i+48)*13),w=3+Math.floor(rnd(i+68)*4),d=3+Math.floor(rnd(i+88)*4),c=['#343a40','#495057','#5a189a','#264653','#34345a'][i%5];make(px,h/2+.1,pz,w,h,d,c,true);for(let yy=1.5;yy<h-1;yy+=2)make(px,yy,pz+d/2+.03,w*.55,.12,.08,i%2?'#00e5ff':'#ff00aa',false);if(i%3===0)make(px,h+.2,pz,.6,.4,.6,'#ffd166',false,2,6)}
+    else if(type==='nature'||type==='village'){if(i%4===0){const wall='#c9a66b',roof=i%2?'#8d5524':'#a23b3b',hx=px,hz=pz;make(hx,1.3,hz,4,.15,4,'#967d61');make(hx-2,1.6,hz, .2,2.6,4,wall);make(hx+2,1.6,hz,.2,2.6,4,wall);make(hx,1.6,hz-2,4,2.6,.2,wall);make(hx-1.45,1.6,hz+2,1.1,2.6,.2,wall);make(hx+1.45,1.6,hz+2,1.1,2.6,.2,wall);make(hx,3,hz,4.6,.35,4.6,roof);make(hx-.5,.45,hz-.35,.9,.7,.9,'#6b4423');make(hx+.7,.45,hz-.35,.65,.6,.65,'#b08968')}
+     else{const th=1.7+rnd(i+104)*1.2;make(px,th/2,pz,.45,th,.45,'#6b4423');make(px,th+.65,pz,2.2,1.35,2.2,['#2d6a4f','#2f7d32','#567d46'][i%3]);if(i%3===0)make(px+.8,.4,pz+.8,.35,.8,.35,'#7f5539')}}
+    else if(type==='desert'){make(px,.7,pz,1.7+rnd(i+111)*2,1.4,1.5+rnd(i+112)*2,i%2?'#c2a878':'#a98457');if(i%3===0){make(px+1,1.1,pz,.25,2.2,.25,'#6b8e23');make(px+1,2.3,pz,1.3,.15,1.3,'#718355')}}
+    else if(type==='snow'){make(px,.65,pz,1.5,1.3,1.5,'#8d99ae');make(px,.65,pz,1.65,1.4,1.65,'#e9ecef',false)}
+    else if(type==='sea'){const hh=1.5+rnd(i+122)*2;make(px,hh/2,pz,.5,hh,.5,['#00b4d8','#ff6b8a','#80ffdb'][i%3]);make(px,hh+.2,pz,.4,.4,.4,'#ffd166',false,2,6)}
+    else if(type==='space'){make(px,.25,pz,3+rnd(i+133)*2,.5,3+rnd(i+134)*2,['#6a4c93','#4361ee','#4cc9f0'][i%3]);if(i%2===0)make(px,.8,pz,.45,.45,.45,'#ffd166',false,2,6)}
+    else{make(px,.7,pz,1.6,1.4,1.6,type==='ruins'?'#5c5470':'#6c757d');if(i%2===0)make(px,1.7,pz,.6,.6,.6,'#ffd166',false,2,6)}
+   }
+  }
+  procChunks.set(key,blocks);
+ }
+ function ensureProceduralWorld(){if(infiniteCourse)return;const cx=Math.floor(pl.p.x/28),cz=Math.floor(pl.p.z/28);for(let xx=cx-2;xx<=cx+2;xx++)for(let zz=cz-2;zz<=cz+2;zz++)chunkBuild(xx,zz);for(const [key,blocks] of procChunks){const [xx,zz]=key.split(',').map(Number);if(Math.abs(xx-cx)>3||Math.abs(zz-cz)>3){blocks.forEach(b=>{const bi=B.indexOf(b);if(bi>=0)B.splice(bi,1);const ri=RL.indexOf(b);if(ri>=0)RL.splice(ri,1);if(b.m)sc.remove(b.m)});procChunks.delete(key)}}}
  if(S.msg)say('Juego',S.msg);
  const cmd=m=>{if(U[me].mute)return say('Sistema','Estás silenciado.');const s=m.toLowerCase();m=bad(m);say(me,m);net({t:'chat',m});setTimeout(()=>{let r;
   if(/s[ií]gue?|\bven\b/.test(s)){follow=1;r='¡Te sigo!'}
@@ -481,8 +585,20 @@ function play(id,roomCode='',createRoom=false){
   GRAV=ADM.grav||S.grav||28;const f=(k.KeyW||k.ArrowUp||document.body.classList.contains('controls-buttons')&&window.__nxDir?.KeyW?1:0)-(k.KeyS||k.ArrowDown||document.body.classList.contains('controls-buttons')&&window.__nxDir?.KeyS?1:0)-JV.y,r=(k.KeyD||k.ArrowRight||document.body.classList.contains('controls-buttons')&&window.__nxDir?.KeyD?1:0)-(k.KeyA||k.ArrowLeft||document.body.classList.contains('controls-buttons')&&window.__nxDir?.KeyA?1:0)+JV.x,sy=Math.sin(yaw),cy=Math.cos(yaw);
   let dx=-f*sy+r*cy,dz=-f*cy-r*sy;const l=Math.hypot(dx,dz)||1,sp=f||r?((!ADM.fly&&(k.ShiftLeft||k.ShiftRight||JC))?2.5:(ADM.speed||WS)*(t<boost?1.8:1)):0;dx=dx/l*sp;dz=dz/l*sp;
   pl.cr=!!(!ADM.fly&&(k.ShiftLeft||k.ShiftRight||JC));if(sp)pl.ty=Math.atan2(dx,dz);
-  const jumpPressed=!!(k.Space||JJ);if(jumpPressed&&!jumpLatch&&(pl.g||ADM.inf)&&!ADM.fly){pl.vy=ADM.jump||JP;beep(520)}jumpLatch=jumpPressed;
-  if(ADM.fly)pl.vy=((k.Space||JJ)?9:0)-((k.ShiftLeft||k.ShiftRight||JC)?9:0)+GRAV*dt;if(ADM.freeze){dx=dz=0;pl.vx=pl.vz=0}const ac=Math.min(1,dt*(pl.g?12:4));pl.vx=(pl.vx||0)+(dx-(pl.vx||0))*ac;pl.vz=(pl.vz||0)+(dz-(pl.vz||0))*ac;pl.sp=Math.hypot(pl.vx,pl.vz)/6;if(ADM.noclip){const sb=B;B=[];mv(pl,pl.vx,pl.vz,dt);B=sb}else mv(pl,pl.vx,pl.vz,dt);if(lava&&pl.p.y<=.02&&!ADM.god)die();stp-=dt;if(pl.g&&pl.sp>.3&&stp<=0){beep(90+Math.random()*40,.04);stp=.38/(pl.sp+.3)}
+  waterZones.forEach(zone=>{if(zone.follow){zone.x=pl.p.x;zone.z=pl.p.z;zone.mesh.position.x=zone.x;zone.mesh.position.z=zone.z}});
+  const activeWater=waterZones.find(zone=>Math.abs(pl.p.x-zone.x)<=zone.w/2&&Math.abs(pl.p.z-zone.z)<=zone.d/2&&pl.p.y<zone.y+zone.h/2&&pl.p.y>zone.y-zone.h/2-.25);
+  const activeLadder=ladderZones.find(zone=>Math.abs(pl.p.x-zone.x)<.95&&pl.p.y>=zone.baseY-.65&&pl.p.y<=zone.baseY+zone.height+.4&&pl.p.z>=zone.z+.25&&pl.p.z<=zone.z+1.6);
+  pl.swimming=!!activeWater;pl.climbing=!!(activeLadder&&!pl.swimming&&f>.12);
+  const jumpPressed=!!(k.Space||JJ);if(jumpPressed&&!jumpLatch&&(pl.g||ADM.inf||pl.climbing)&&!ADM.fly&&!pl.swimming){pl.vy=ADM.jump||JP;beep(520)}jumpLatch=jumpPressed;
+  if(ADM.fly)pl.vy=((k.Space||JJ)?9:0)-((k.ShiftLeft||k.ShiftRight||JC)?9:0)+GRAV*dt;
+  if(ADM.freeze){dx=dz=0;pl.vx=pl.vz=0}
+  const ac=Math.min(1,dt*(pl.g?12:4));pl.vx=(pl.vx||0)+(dx-(pl.vx||0))*ac;pl.vz=(pl.vz||0)+(dz-(pl.vz||0))*ac;pl.sp=Math.hypot(pl.vx,pl.vz)/6;
+  if(pl.swimming&&!ADM.fly){pl.cr=false;const depth=activeWater,vertical=(jumpPressed?3.2:0)-((k.ShiftLeft||k.ShiftRight||JC)?2.6:0);pl.vy+=(vertical-pl.vy)*Math.min(1,dt*4);slide(pl,'x',pl.vx,dt);slide(pl,'z',pl.vz,dt);pl.p.y+=pl.vy*dt;pl.p.y=Math.max(depth.y-depth.h/2+.15,Math.min(depth.y+depth.h/2-1.1,pl.p.y));pl.g=false;pl.sp=Math.max(pl.sp,.35)}
+  else if(pl.climbing&&!ADM.fly){pl.vx=pl.vz=0;pl.sp=.72;pl.g=false;pl.vy=0;pl.p.x+=(activeLadder.x-pl.p.x)*Math.min(1,dt*8);pl.p.z=activeLadder.faceZ;pl.p.y+=f*3.5*dt;pl.p.y=Math.min(activeLadder.baseY+activeLadder.height,pl.p.y);if(pl.p.y>=activeLadder.baseY+activeLadder.height-.02){pl.p.y=activeLadder.baseY+activeLadder.height;pl.p.z=activeLadder.z-1.5;pl.climbing=false}}
+  else if(ADM.noclip){const sb=B;B=[];mv(pl,pl.vx,pl.vz,dt);B=sb}else mv(pl,pl.vx,pl.vz,dt);
+  if(lava&&pl.p.y<=.02&&!ADM.god)die();stp-=dt;if(pl.g&&pl.sp>.3&&stp<=0){beep(90+Math.random()*40,.04);stp=.38/(pl.sp+.3)}
+  movingBlocks.forEach(mb=>{const i=mb.axis==='x'?0:mb.axis==='y'?1:2,offset=Math.sin(t*mb.speed+mb.phase)*mb.range;mb.b[i]=mb.base+offset;mb.mesh.position[mb.axis]=mb.b[i]});
+  ensureProceduralWorld();
   if(bj===1)bj=t+.6;
   const tg=new THREE.Vector3(pl.p.x+Math.sin(yaw+.9)*2.2,pl.p.y+2.2+Math.sin(t*2)*.25+(t<bj?1.5:0),pl.p.z+Math.cos(yaw+.9)*2.2),od=bot.p.clone();
   if(follow)bot.p.lerp(tg,Math.min(1,dt*3));
@@ -504,9 +620,9 @@ function play(id,roomCode='',createRoom=false){
   if(!hooks.length)$('#sc').textContent=(S.hud||'')+(RL.length?' 🪙 '+coins:'');
   if(JA){JA=0;hit()}
   if(atk>0){atk-=dt;pl.ax=-1.9*Math.sin((1-Math.max(atk,0)/.35)*Math.PI)}else pl.ax=hasSword?-.7:0;
-  mobs.forEach(m=>{if(m.dead)return;m.fl-=dt;const y=m.h/2+Math.abs(Math.sin(t*6))*.1;
-   if(m.pc){if(t>(m.tt||0)){m.tt=t+2+Math.random()*3;m.a=Math.random()*6.28}m.p.x+=Math.sin(m.a)*m.sp*dt;m.p.z+=Math.cos(m.a)*m.sp*dt;if(m.p.length()>35)m.a=Math.atan2(-m.p.x,-m.p.z);m.m.rotation.y=m.a;m.m.position.set(m.p.x,m.p.y+y,m.p.z);return}
-   const d=pl.p.clone().sub(m.p);d.y=0;const l=d.length();if(l<25&&l>1.2+m.h/2)m.p.addScaledVector(d,m.sp*dt/l);m.cd-=dt;if(l<1.5+m.h/2&&m.cd<=0){m.cd=1;pl.hp-=m.dm;beep(160,.12)}m.m.position.set(m.p.x,m.p.y+y,m.p.z);m.m.scale.setScalar(m.fl>0?1.2:1)});
+  mobs.forEach(m=>{if(m.dead)return;m.fl-=dt;const bob=Math.abs(Math.sin(t*6))*.035;
+   if(m.pc){if(t>(m.tt||0)){m.tt=t+2+Math.random()*3;m.a=Math.random()*6.28}m.p.x+=Math.sin(m.a)*m.sp*dt;m.p.z+=Math.cos(m.a)*m.sp*dt;if(m.p.length()>35)m.a=Math.atan2(-m.p.x,-m.p.z);m.ty=m.a;m.m.position.set(m.p.x,m.p.y+bob,m.p.z);m.sp=Math.max(.2,m.sp);anim(m,t,dt);return}
+   const d=pl.p.clone().sub(m.p);d.y=0;const l=d.length();if(!m.pc&&l<25&&l>1.2+m.h/2){m.p.addScaledVector(d,m.sp*dt/l);m.ty=Math.atan2(d.x,d.z)}m.cd-=dt;if(!m.pc&&l<1.5+m.h/2&&m.cd<=0){m.cd=1;pl.hp-=m.dm;beep(160,.12)}m.sp=m.pc?Math.min(.55,m.sp):m.sp;m.g=true;m.swimming=false;m.climbing=false;m.m.position.set(m.p.x,m.p.y+bob,m.p.z);m.m.scale.setScalar((m.fl>0?1.08:1)*m.baseScale);anim(m,t,dt)});for(let mi=mobs.length-1;mi>=0;mi--)if(mobs[mi].dead)mobs.splice(mi,1);
   pl.hp=ADM.god?100:Math.min(100,pl.hp+2*dt);if(pl.hp<=0){pl.hp=100;pl.p.set(0,1,0);pl.vy=0;say('Juego','Has caído. ¡Reapareces!')}
   $('#hp').textContent=mobs.length||hasSword?'❤ '+Math.ceil(pl.hp):'';
   hooks.forEach(h=>h(dt,t));
@@ -747,9 +863,12 @@ function cfg(){$('#main').innerHTML=`<h2>⚙ Configuración</h2><div class="set"
 <label>Forma <select onchange="setBG('bgSh',+this.value)" style="background:#241040;color:#fff;border-radius:8px;padding:6px">${['Cubos','Esferas','Pirámides','Gemas'].map((t,i)=>`<option value="${i}" ${cv('bgSh',0)==i?'selected':''}>${t}</option>`).join('')}</select></label>
 <label>Color de las figuras <input type="color" value="${cv('bgCol','#9d4edd')}" onchange="setBG('bgCol',this.value)"></label><button class="s" onclick="setBG('bgCol','')">Colores mixtos</button>
 <label>Cantidad <input type="range" min="0" max="120" value="${cv('bgN',45)}" onchange="setBG('bgN',+this.value)"></label></div>
-<div class="set" style="display:grid;gap:4px"><b>👤 Cuenta</b><input id="nu" placeholder="Nuevo nombre de usuario"><button onclick="chU()">Cambiar usuario</button><input id="op" type="password" placeholder="Contraseña actual"><input id="np" type="password" placeholder="Nueva contraseña"><button onclick="chP()">Cambiar contraseña</button><small id="am"></small></div><label class="set">🌐 Servidor multijugador<input id="srv" value="${esc(cv('srv',SRV0))}" onchange="C.srv=this.value;save()"></label><input id="cs" placeholder="Buscar ajuste…" oninput="cfs()"><div id="cl"></div>`;cfs()}
-function chU(){const n=$('#nu').value,m=$('#am');if(!/^\w{8,15}$/.test(n)||BAD.test(n))return m.textContent='No puedes escribir ese usuario!';if(U[n])return m.textContent='Ese usuario ya existe';U[n]=U[me];delete U[me];G.forEach(g=>{if(g.by==me)g.by=n});me=n;save();$('#who').innerHTML='👤 '+esc(n)+tag(n);m.textContent='✔ Usuario cambiado'}
-function chP(){const o=$('#op').value,n=$('#np').value,m=$('#am');if(U[me].h!==hs(o))return m.textContent='La contraseña actual no es correcta';if(n.length<8||n.length>15||BAD.test(n))return m.textContent='No puedes escribir esa contraseña!';U[me].h=hs(n);save();m.textContent='✔ Contraseña cambiada'}
+<div class="set" style="display:grid;gap:4px"><b>👤 Cuenta</b><input id="nu" placeholder="Nuevo nombre de usuario"><button onclick="chU()">Cambiar usuario</button><input id="op" type="password" placeholder="Contraseña actual"><input id="np" type="password" placeholder="Nueva contraseña"><button onclick="chP()">Cambiar contraseña</button><small id="am"></small></div>
+<div class="set" style="display:grid;gap:6px"><b>🔐 Seguridad de cuenta</b><label>Nombre de este dispositivo (opcional) <input maxlength="40" placeholder="Ej.: PC de casa o Android" value="${esc(cv('deviceName',''))}" onchange="C.deviceName=this.value.slice(0,40);save()"></label><small>Si lo dejas vacío, el historial mostrará el sistema y el navegador.</small><label>Guardar ubicación aproximada en el historial (opcional) <input type="checkbox" ${cv('loginLocation',false)?'checked':''} onchange="C.loginLocation=this.checked;save()"></label><small>Solo se solicita permiso al iniciar sesión si lo activas. La ubicación se redondea de forma amplia antes de guardarla. No se guarda la IP. Cada sesión se registra con dispositivo, fecha y hora.</small>${isOw(me)?'<button class="s" onclick="loadLoginHistory()">📋 Ver inicios de sesión y dispositivos</button><div id="loginHistory"><small>Pulsa para consultar el historial del servidor.</small></div>':''}</div>
+<label class="set">🌐 Servidor multijugador<input id="srv" value="${esc(cv('srv',SRV0))}" onchange="C.srv=this.value;save()"></label><input id="cs" placeholder="Buscar ajuste…" oninput="cfs()"><div id="cl"></div>`;cfs()}
+async function loadLoginHistory(){const out=$('#loginHistory');if(!out)return;out.innerHTML='<small>Cargando el historial del servidor…</small>';const key=getEconomyAdminKey();if(!key){out.innerHTML='<small>Hace falta la llave administrativa.</small>';return}try{const r=await fetch('/api/auth/login-history?actor='+encodeURIComponent(me),{headers:{'x-admin-key':key},cache:'no-store'}),d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'No se pudo leer el historial.');const active=(d.active||[]).map(a=>`<div class="srv"><b>${esc(a.username)}</b><small>${esc(a.device)} · ${esc(a.location)} · última señal ${new Date(a.lastSeen).toLocaleString()}</small></div>`).join('')||'<small>No hay sesiones activas ahora.</small>';const events=(d.events||[]).map(a=>`<div class="srv"><b>${a.success?'✅':'⚠️'} ${esc(a.username)}</b><small>${esc(a.device)} · ${esc(a.location)}<br>${new Date(a.createdAt).toLocaleString()} · ${esc(a.detail)}</small></div>`).join('')||'<small>Aún no hay registros.</small>';out.innerHTML='<h4>Sesiones activas</h4>'+active+'<h4>Últimos intentos de inicio (máx. 150)</h4>'+events}catch(e){out.innerHTML='<small>'+esc(e.message)+'</small>'}}
+async function chU(){const n=$('#nu').value.trim(),m=$('#am');if(!/^[A-Za-z0-9_]{8,15}$/.test(n)||BAD.test(n))return m.textContent='No puedes escribir ese usuario!';if(isOw(me)||isOw(n))return m.textContent='El nombre ParaCraftero está protegido.';if(Object.keys(U).some(x=>x.toLowerCase()===n.toLowerCase()))return m.textContent='Ese usuario ya existe';if(!ACTIVE_SESSION_ID)return m.textContent='No hay una sesión segura activa. Vuelve a entrar.';const password=prompt('Por seguridad, confirma tu contraseña actual para cambiar el nombre.');if(password===null)return;try{const r=await fetch('/api/auth/username/change',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:me,newUsername:n,sessionId:ACTIVE_SESSION_ID,password,device:deviceLabel(),location:'No compartida'})}),d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'No se pudo cambiar el usuario.');const old=me;U[n]=U[old];delete U[old];G.forEach(g=>{if(g.by===old)g.by=n});me=n;ACTIVE_SESSION_USER=n;try{sessionStorage.removeItem('nx_session_id_'+old.toLowerCase());sessionStorage.setItem('nx_session_id_'+n.toLowerCase(),ACTIVE_SESSION_ID)}catch{}save();$('#who').innerHTML='👤 '+esc(n)+tag(n);m.textContent='✔ Usuario cambiado y sincronizado con el servidor'}catch(e){m.textContent=e.message||'No se pudo cambiar el usuario.'}}
+async function chP(){const o=$('#op').value,n=$('#np').value,m=$('#am');if(isOw(me))return m.textContent='ParaCraftero usa NIXORA_ADMIN_KEY. Cambia esa llave en Render → Environment.';if(n.length<8||n.length>15||BAD.test(n))return m.textContent='No puedes escribir esa contraseña!';if(!ACTIVE_SESSION_ID)return m.textContent='No hay una sesión segura activa. Vuelve a entrar.';try{const r=await fetch('/api/auth/password/change',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:me,sessionId:ACTIVE_SESSION_ID,oldPassword:o,newPassword:n})}),d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'No se pudo cambiar la contraseña.');U[me].h=hs(n);save();m.textContent='✔ Contraseña cambiada y sincronizada con el servidor'}catch(e){m.textContent=e.message||'No se pudo cambiar la contraseña.'}}
 function cfs(){const q=$('#cs').value.toLowerCase();
  $('#cl').innerHTML=CF.map((s,i)=>{
   const R=(s[1]?s[1].split(','):[]).map(r=>r.split(':')).filter(r=>r[1].toLowerCase().includes(q)).map(r=>`<label class="set">${r[1]}<span><input type="range" min="${r[2]}" max="${r[3]}" step="${r[3]-r[2]<5?.1:1}" value="${cv(r[0],+r[4])}" oninput="C['${r[0]}']=+this.value;save();this.nextSibling.textContent=this.value"><b>${cv(r[0],+r[4])}</b></span></label>`),

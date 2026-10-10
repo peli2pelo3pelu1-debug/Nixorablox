@@ -8,7 +8,7 @@
 <input id="u" placeholder="Usuario (8-15, sin espacios)" autocomplete="username" oninput="chk()"><small id="hint"></small><input id="pw" type="password" placeholder="Contraseña (8-15, sin espacios)" autocomplete="current-password">
 <p id="err"></p><button onclick="auth(0)">Iniciar sesión</button><button class="s" onclick="auth(1)">Registrarse</button></div></div>
 <div id="app" hidden>
-<header><span class="logo">Nixora Blox</span><nav id="nav"></nav><input id="q" placeholder="🔎 Buscar juegos" oninput="go('home')"><span id="wal" style="margin-left:auto"></span><span id="who"></span><button id="admbtn" class="s" hidden onclick="apOpen()">🛡 Admin (P)</button><button class="s" onclick="location.reload()">Salir</button></header>
+<header><span class="logo">Nixora Blox</span><nav id="nav"></nav><input id="q" placeholder="🔎 Buscar juegos" oninput="go('home')"><span id="wal" style="margin-left:auto"></span><span id="who"></span><button id="admbtn" class="s" hidden onclick="apOpen()">🛡 Admin (P)</button><button class="s" onclick="logout()">Salir</button></header>
 <aside id="side"></aside><main id="main"></main></div>
 <div id="play" hidden><canvas id="cv"></canvas>
 <div id="hud"><b id="gt"></b><div id="pl"></div><small id="fps"></small><small id="sc"></small><small id="hp"></small><small id="wl"></small><small>WASD mover · Espacio saltar · Shift agacharse · I/O zoom (1.ª persona) · Clic: mirar con el ratón (Esc suelta) · F: atacar · Esc: pausa / salir</small></div>
