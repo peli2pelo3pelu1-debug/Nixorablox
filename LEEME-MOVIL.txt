@@ -25,3 +25,28 @@ El proyecto conserva Electron. En una computadora con Node.js e internet:
   npm install
   npm run dist-win
 El instalador se genera en dist/. No se adjunta un EXE ya compilado en este paquete.
+
+
+MEJORAS DE ESTA VERSION
+- Zoom de cámara móvil con dos dedos: separarlos acerca y juntarlos aleja.
+- Se conserva la animación original del personaje; no se añadieron animaciones nuevas de salto ni de agacharse.
+- Chat público plegable con el botón «−» o la tecla «-» en PC. Los mensajes nuevos muestran el chat temporalmente y se oculta tras 5 segundos. Se quitaron los botones de micrófono y sonido del chat público.
+- Amigos: buscar cuentas registradas en este navegador, enviar/aceptar solicitudes, bloquear, desbloquear, eliminar y abrir el apartado de mensajes privados.
+- Panel de administración: lista de jugadores conectados por nombre/mundo y campo para escribir o seleccionar un usuario.
+
+LIMITES IMPORTANTES
+- Las cuentas, amistades y los mensajes privados siguen guardándose en el almacenamiento local del navegador de esta versión; no se sincronizan automáticamente entre dispositivos.
+- El panel puede listar jugadores conectados al servidor; para aplicar sanciones de administrador a jugadores remotos y para tener amigos/chat privados reales entre dispositivos hace falta implementar autenticación y almacenamiento social en el servidor. El selector avisa cuando la cuenta no está disponible localmente.
+- El paquete usa Three.js desde CDN, por lo que el juego 3D necesita internet para cargar esa librería.
+
+
+MEJORAS DE ESTA VERSION
+- Perfiles con estadísticas, biografía editable e insignias.
+- Misiones diarias y logros con recompensas en Nixdollar.
+- Inventario para objetos de avatar desbloqueados y objetos del Mercado.
+- Studio con guardado automático local del borrador y guardado/publicación manual.
+- Amigos con botón para unirse a sus mundos públicos; las salas privadas se abren con código compartido.
+- Favoritos, filtros y búsqueda por nombre, descripción, hashtag o creador; incluye dos mundos nuevos.
+
+LIMITES
+Las cuentas, amistades, mensajes, progreso, inventario y misiones se guardan en el navegador (localStorage). No se sincronizan todavía entre dispositivos. El código de sala privada debe compartirse directamente con los amigos.
