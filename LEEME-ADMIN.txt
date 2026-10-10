@@ -1,0 +1,16 @@
+NIXORA BLOX — PANEL DE ADMINISTRACIÓN MEJORADO
+
+Qué cambia:
+- Se conserva el panel de administración existente y sus pestañas originales.
+- Nueva pantalla Inicio con estadísticas locales y accesos rápidos.
+- Diseño nuevo, limpio y adaptable a PC y móvil, limitado al panel de administración.
+- Nueva sección Herramientas con buscador y filtro por categoría.
+- Catálogo de 292 permisos/opciones organizados en 25 categorías.
+- Los elementos se marcan como “En el panel actual” o “Pendiente de integración”.
+
+Importante:
+- El total 292 cuenta entradas del catálogo de permisos y opciones; NO significa que 292 acciones ya estén implementadas.
+- Las opciones pendientes son informativas y requieren desarrollo adicional o soporte del servidor.
+- Algunas funciones de cuentas y economía de esta versión usan almacenamiento local del navegador y no se sincronizan globalmente.
+- Este cambio modifica el diseño y el catálogo del panel de administración. No se modificaron las animaciones del personaje ni el diseño general del juego fuera del panel.
+- Se recomienda conservar una copia del ZIP anterior antes de actualizar el repositorio.
