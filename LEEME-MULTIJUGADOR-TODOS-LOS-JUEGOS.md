@@ -27,6 +27,12 @@ Esta actualización añade una capa multijugador común al catálogo. Cada exper
 - Primero prueba un modo con NPC/enemigos y una experiencia que construya bloques (por ejemplo, Tycoon).
 - Si ambos clientes abren juegos distintos, estarán en salas distintas; para jugar juntos deben seleccionar la misma experiencia y, si es una sala privada, el mismo código.
 
+## Corrección de sesión duplicada
+
+El servidor ahora reemplaza una conexión WebSocket antigua del mismo usuario cuando la sesión actual ya fue validada con PostgreSQL. Esto evita el falso mensaje de “ya hay alguien jugando” al volver a entrar a otro juego mientras el socket anterior todavía se está cerrando. La restricción de una cuenta por dispositivo sigue activa en el inicio de sesión: dos sesiones diferentes al mismo tiempo se rechazan.
+
+Si el mensaje aparece en el formulario de inicio de sesión (antes de que aparezca el mundo), cierra otras pestañas o APKs que usen la misma cuenta y pulsa Cerrar sesión en ellas. Si cerraste todo de golpe, espera hasta 2 minutos para que caduque el bloqueo anterior y vuelve a intentarlo. No compartas tu cuenta con otros jugadores.
+
 ## Límites importantes
 
 - El estado de la sala vive en la memoria del proceso de Render. Se reinicia si Render reinicia el servidor o cuando todos los jugadores salen de esa sala; no es un guardado permanente de progreso.

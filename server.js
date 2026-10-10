@@ -391,6 +391,17 @@ const wss=new WebSocketServer({server:srv}),P=new Map(),ROOM_DATA=new Map();let 
 const roomData=g=>{if(!ROOM_DATA.has(g))ROOM_DATA.set(g,{state:new Map(),removed:new Set(),blocks:new Map(),mobs:new Map()});return ROOM_DATA.get(g)};
 const broadcastRoom=(g,m,exceptId=null)=>{const s=JSON.stringify(m);for(const p of P.values())if(p.g===g&&p.id!==exceptId&&p.ws.readyState===1)p.ws.send(s)};
 const bc=(me,m)=>broadcastRoom(me.g,m,me.id);
+// Quita una conexión del mapa una sola vez. preserveRoomKey evita borrar el estado
+// si la misma sesión está reemplazando su WebSocket al volver a entrar al mismo juego.
+function removePlayerConnection(id,preserveRoomKey=null){
+ const me=P.get(id);if(!me)return;
+ broadcastRoom(me.g,{t:'bye',id},id);
+ P.delete(id);
+ const remaining=[...P.values()].filter(p=>p.g===me.g);
+ if(me.isWorldHost&&remaining.length){remaining[0].isWorldHost=true;if(remaining[0].ws.readyState===1)remaining[0].ws.send(JSON.stringify({t:'worldHost',host:true,slot:remaining[0].slot}))}
+ if(!remaining.length&&me.g!==preserveRoomKey)ROOM_DATA.delete(me.g);
+ if(me.pvp)for(const p of P.values())if(p.g===me.g&&p.pvp&&p.ws.readyState===1)p.ws.send(JSON.stringify({t:'duelWaiting'}));
+}
 const safeRoomKey=k=>typeof k==='string'&&/^[A-Za-z0-9:_-]{1,100}$/.test(k);
 const validBlock=b=>Array.isArray(b)&&b.length>=8&&b.slice(0,6).every(v=>Number.isFinite(Number(v))&&Math.abs(Number(v))<=10000)&&typeof b[6]==='string'&&b[6].length<=40;
 const jsonSize=v=>{try{return Buffer.byteLength(JSON.stringify(v))}catch{return Infinity}};
@@ -400,7 +411,17 @@ wss.on('connection',ws=>{const id=nid++;
    const n=String(d.n||'').replace(/[^\w-]/g,'').slice(0,16),world=String(d.world||d.g||'').slice(0,80),room=String(d.room||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,12),g=room?world+'::'+room:world,sid=cleanSessionId(d.sessionId);
    if(!safeUsername(n)||!world||!sid||!economyPool){ws.send(JSON.stringify({t:'chat',n:'Servidor',m:'No se pudo verificar tu sesión. Vuelve a iniciar sesión.'}));return ws.close(1008,'Sesión no válida')}
    try{await initAuthSchema();const valid=await economyPool.query('SELECT 1 FROM nixora_account_sessions WHERE username_norm=$1 AND session_id=$2 AND expires_at>NOW()',[n.toLowerCase(),sid]);if(!valid.rowCount){ws.send(JSON.stringify({t:'chat',n:'Servidor',m:'No se pudo verificar tu sesión. Vuelve a iniciar sesión.'}));return ws.close(1008,'Sesión no válida')}}catch(err){console.error('No se pudo validar sesión WebSocket:',err.message);ws.send(JSON.stringify({t:'chat',n:'Servidor',m:'No se pudo verificar tu sesión con PostgreSQL.'}));return ws.close(1011,'Validación fallida')}
-   if([...P.values()].some(p=>p.n.toLowerCase()===n.toLowerCase())){ws.send(JSON.stringify({t:'chat',n:'Servidor',m:'Perdon, pero ya hay alguien jugando en esta cuenta. Por favor, vuelve más tarde.'}));return ws.close(1008,'Cuenta ocupada')}
+   // La autenticación PostgreSQL anterior ya confirmó el sessionId actual.
+   // Si queda otro WebSocket con el mismo nombre, puede ser una conexión vieja
+   // del juego anterior o un reingreso rápido: reemplazarla evita falsos bloqueos.
+   // Un inicio de sesión en otro dispositivo con otra sesión sigue siendo bloqueado
+   // por /api/auth/session/open, antes de poder abrir el WebSocket.
+   const sameAccountSockets=[...P.entries()].filter(([otherId,p])=>otherId!==id&&p.n.toLowerCase()===n.toLowerCase());
+   for(const [oldId,oldPlayer] of sameAccountSockets){
+    try{if(oldPlayer.ws.readyState===1)oldPlayer.ws.send(JSON.stringify({t:'chat',n:'Servidor',m:'Esta conexión anterior se cerró porque volviste a entrar al juego.'}))}catch{}
+    removePlayerConnection(oldId,g);
+    try{oldPlayer.ws.close(4001,'Conexión reemplazada por la sesión autenticada actual')}catch{}
+   }
    if(room&&!d.owner&&!([...P.values()].some(p=>p.world===world&&p.room===room))){ws.send(JSON.stringify({t:'chat',n:'Servidor',m:'No existe una sala privada con ese código. Comprueba el código con tu amigo.'}));return ws.close()}
    const currentRoom=[...P.values()].filter(p=>p.g===g),pvp=!!d.pvp,duelMembers=[...P.entries()].filter(([otherId,p])=>otherId!==id&&p.g===g&&p.pvp);
    if(pvp&&duelMembers.length>=2){ws.send(JSON.stringify({t:'chat',n:'Arena',m:'Esta arena ya tiene dos jugadores. Busca otra partida 1 contra 1.'}));return ws.close(1008,'Arena completa')}
@@ -453,6 +474,6 @@ wss.on('connection',ws=>{const id=nid++;
   }
   if(d.t==='chat')bc(me,{t:'chat',n:me.n,m:clean(d.m)});
  });
- ws.on('close',()=>{const me=P.get(id);if(me){bc(me,{t:'bye',id});const formerHost=me.isWorldHost,room=me.g;P.delete(id);const remaining=[...P.values()].filter(p=>p.g===room);if(formerHost&&remaining.length){remaining[0].isWorldHost=true;if(remaining[0].ws.readyState===1)remaining[0].ws.send(JSON.stringify({t:'worldHost',host:true,slot:remaining[0].slot}))}if(!remaining.length)ROOM_DATA.delete(room);if(me.pvp)for(const p of P.values())if(p.g===me.g&&p.pvp&&p.ws.readyState===1)p.ws.send(JSON.stringify({t:'duelWaiting'}))}})
+ ws.on('close',()=>removePlayerConnection(id));
 });
 srv.listen(PORT,()=>console.log('Nixora Blox listo en http://localhost:'+PORT));
