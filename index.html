@@ -32,28 +32,5 @@
   </div>
 </div></div><div id="nxFriendRequestRoot" hidden aria-live="polite" aria-label="Solicitudes de amistad"></div><div id="gameInstructions" hidden role="dialog" aria-modal="true" aria-labelledby="gameHelpTitle"><div class="game-help-card"><button class="game-help-close" onclick="closeGameInstructions()" aria-label="Cerrar instrucciones">✕</button><div id="gameInstructionsContent"></div><button class="game-help-primary" onclick="closeGameInstructions()">¡Entendido, jugar!</button></div></div>
 <div id="chat" class="chat-hidden" aria-label="Chat público del juego"><button id="chatToggle" type="button" aria-expanded="false" onclick="toggleGameChat()" title="Mostrar u ocultar chat">−</button><div id="log" aria-live="polite"></div><div class="r"><input id="ci" placeholder="Escribe y pulsa Enter…" autocomplete="off" maxlength="200"><button id="chatSend" type="button" onclick="sendGameChat()">Enviar</button></div></div></div>
-<script>
-(function(){
- const sources=[
-  'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js',
-  'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js',
-  'https://unpkg.com/three@0.128.0/build/three.min.js'
- ];
- const version='nx26-avatar-gallery-fix-20261011';
- const notice=document.createElement('div');notice.id='nxEngineBootNotice';notice.style.cssText='position:fixed;top:8px;left:8px;right:8px;z-index:99999;background:#241040;color:#fff;border:1px solid #9d4edd;border-radius:10px;padding:10px 14px;text-align:center;font:14px system-ui;box-shadow:0 4px 18px #0006';notice.textContent='Cargando el motor 3D de Nixora Blox…';document.body.appendChild(notice);
- let index=0;
- function loadApp(engineLoaded){
-  window.__nxThreeFailureShown=!engineLoaded;
-  if(engineLoaded){notice.remove()}else{notice.textContent='No se pudo cargar el motor 3D. El menú seguirá disponible, pero para jugar necesitarás conectarte y recargar.';notice.style.background='#6b1d2a'}
-  const app=document.createElement('script');app.src='script.js?v='+version;app.onerror=()=>{notice.textContent='No se pudo cargar el código de Nixora Blox. Recarga la página o inténtalo más tarde.';notice.style.background='#6b1d2a'};document.body.appendChild(app);
- }
- function trySource(i){
-  if(i>=sources.length){loadApp(false);return}
-  const tag=document.createElement('script');let done=false;
-  const timer=setTimeout(()=>finish(false),6500);
-  function finish(ok){if(done)return;done=true;clearTimeout(timer);tag.onload=tag.onerror=null;if(ok){loadApp(true);return}tag.remove();trySource(i+1)}
-  tag.onload=()=>finish(true);tag.onerror=()=>finish(false);tag.src=sources[i];document.head.appendChild(tag);
- }
- trySource(index);
-})();
-</script></body></html>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="script.js?v=nx23-perf-pets-loopfix-20261012"></script></body></html>

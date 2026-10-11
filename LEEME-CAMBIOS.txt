@@ -1,0 +1,28 @@
+NIXORA BLOX - CAMBIOS DE ESTA VERSIÓN (nx23)
+
+1) CRASHEO AL ENTRAR A UN JUEGO - ARREGLADO
+   Causa: la función buildProcRenderBatch (script.js) tenía un bucle while que, cuando un trozo del mapa
+   tenía más grupos de bloques que el presupuesto por fotograma y ya no quedaban bloques sueltos, giraba
+   para siempre sin avanzar. La pestaña se congelaba y parecía un crasheo.
+   En una simulación con los 124 juegos, el archivo anterior se congelaba en 34 de ellos (37 en modo móvil);
+   con este arreglo no se congela ninguno.
+   También: tope de seguridad en el generador infinito de tramos del obby, y el servidor ya no se cae si
+   una consulta asíncrona falla (server.js).
+
+2) MASCOTAS DE LOS DEMÁS JUGADORES
+   Cada jugador ve la mascota de los demás: la siguen volando, se reconstruyen si cambian de mascota
+   en pleno juego y se ocultan solas si están lejos (más lejos con menos rendimiento).
+
+3) ESCONDER MASCOTAS
+   Menú principal > Ajustes > Mascotas, y dentro del juego Menú > Settings:
+   - "Mostrar mi mascota": si la escondes, los demás tampoco la ven.
+   - "Mostrar mascotas de otros jugadores".
+
+4) SISTEMA DE RENDIMIENTO
+   Menú principal > Ajustes > Rendimiento, y dentro del juego Menú > Settings > Rendimiento.
+   Modos: Automático (recomendado), Máxima calidad, Equilibrado, Alto rendimiento, Ultra ahorro, Extremo.
+   Cada nivel baja resolución, sombras, nubes, lluvia, distancia de dibujado y mascotas lejanas.
+   En Automático, si tus FPS reales caen por debajo de ~40 baja un nivel (y avisa en el chat);
+   cuando vuelven a subir, recupera la calidad. Con "Mostrar FPS" ves el nivel activo.
+
+Para que el navegador cargue la versión nueva, abre la página y pulsa Ctrl+F5 (o borra la caché una vez).

@@ -2,6 +2,8 @@
 // Uso:  npm install  &&  node server.js   ->  abre http://localhost:3000
 const http=require('http'),fs=require('fs'),path=require('path'),{WebSocketServer}=require('ws');
 const crypto=require('crypto');
+process.on('unhandledRejection',e=>console.error('Promesa rechazada sin capturar (el servidor sigue activo):',e&&e.message||e));
+process.on('uncaughtException',e=>console.error('Excepción no capturada (el servidor sigue activo):',e&&e.message||e));
 const PORT=process.env.PORT||3000,T={'.html':'text/html','.css':'text/css','.js':'text/javascript','.json':'application/json','.png':'image/png','.svg':'image/svg+xml'};
 const BW=['puta','puto','mierda','pendejo','idiota','estupido','estúpido','imbecil','imbécil','cabron','cabrón','verga','coño','joder','carajo','marica','maricon','zorra','fuck','shit','bitch','asshole','dick','cunt'];
 const RE=new RegExp('(?<![a-záéíóúñ])('+BW.join('|')+')(?![a-záéíóúñ])','gi');
