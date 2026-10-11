@@ -461,7 +461,7 @@ wss.on('connection',ws=>{const id=nid++;
   }
   if(d.t==='mobSnapshot'){
    if(!me.isWorldHost||Date.now()-me.lastMobSnapshot<90||!Array.isArray(d.mobs))return;me.lastMobSnapshot=Date.now();const rd=roomData(me.g),valid=[];
-   for(const m of d.mobs.slice(0,100)){if(!m||!safeRoomKey(String(m.id||'')))continue;const row={id:String(m.id),x:Number(m.x)||0,y:Number(m.y)||0,z:Number(m.z)||0,hp:Math.max(0,Math.min(100000,Number(m.hp)||0)),maxHp:Math.max(1,Math.min(100000,Number(m.maxHp)||100)),dead:!!m.dead,sp:Math.max(0,Math.min(20,Number(m.sp)||0)),size:Math.max(.2,Math.min(5,Number(m.size)||.9)),speed:Math.max(.1,Math.min(10,Number(m.speed)||2.5)),dmg:Math.max(0,Math.min(100,Number(m.dmg)||8)),peaceful:!!m.peaceful,color:typeof m.color==='string'&&m.color.length<=40?m.color:'#8d99ae'};
+   for(const m of d.mobs.slice(0,100)){if(!m||!safeRoomKey(String(m.id||'')))continue;const row={id:String(m.id),x:Number(m.x)||0,y:Number(m.y)||0,z:Number(m.z)||0,hp:Math.max(0,Math.min(100000,Number(m.hp)||0)),maxHp:Math.max(1,Math.min(100000,Number(m.maxHp)||100)),dead:!!m.dead,sp:Math.max(0,Math.min(20,Number(m.sp)||0)),size:Math.max(.2,Math.min(5,Number(m.size)||.9)),speed:Math.max(0,Math.min(10,Number(m.speed??2.5)||0)),dmg:Math.max(0,Math.min(100,Number(m.dmg)||8)),peaceful:!!m.peaceful,color:typeof m.color==='string'&&m.color.length<=40?m.color:'#8d99ae',zombie:!!m.zombie,skinIndex:Math.max(0,Math.min(2,Math.floor(Number(m.skinIndex)||0)))};
     if([row.x,row.y,row.z].some(v=>!Number.isFinite(v)||Math.abs(v)>10000))continue;valid.push(row);if(!rd.mobs.get(row.id)?.dead)rd.mobs.set(row.id,row);
    }
    for(const [key,row] of rd.mobs)if(!row.dead&&!valid.some(m=>m.id===key))rd.mobs.delete(key);
