@@ -1196,7 +1196,7 @@ function play(id,roomCode='',createRoom=false){
   }else navSetSpeed(agent,0);
  };
  GRAV=S.grav||28;JP=S.jump||10.5;WS=S.walk||6;
- if(lava&&!sb){const pb=[SP[0],SP[1]-.15,SP[2],10,.3,10,'#3a3a5c',1,1];B.push(pb);addM(pb)}
+ if(lava&&!sb){const pb=[SP[0],SP[1]-.15,SP[2],12,.3,12,'#3a3a5c',1,1];B.push(pb);collisionIndexBlock(pb);addM(pb)}
  pl.p.set(SP[0],SP[1],SP[2]);unst(pl);
  const die=()=>{pl.p.set(SP[0],SP[1],SP[2]);pl.vy=0;pl.vx=pl.vz=0;unst(pl);beep(140,.25);say('Juego','💀 Has muerto');kd2&&kd2()};
  const spawnND=()=>{if(nds.length>=6||!B.length)return;const b=B[Math.random()*B.length|0],d=Math.hypot(b[0]-pl.p.x,b[2]-pl.p.z);if(d<4||d>40)return;const m=addM([b[0],b[1]+b[4]/2+.9,b[2],.55,.55,.55,'#00ff88',1,0,'',0,1,0]);m.userData.t0=performance.now();nds.push(m)};
@@ -1365,26 +1365,27 @@ function play(id,roomCode='',createRoom=false){
  let lastProcChunkBuild=0;
  function chunkBuild(cx,cz){const key=cx+','+cz;if(procChunks.has(key)||infiniteCourse&&Math.abs(cx)<=1&&Math.abs(cz)<=1)return;
   const x=cx*28,z=cz*28,far=Math.abs(cx)>1||Math.abs(cz)>1,blocks=[];
+  // Clasificación disponible desde el principio de la función para todos los caminos de generación.
+  const starterTheme=(String(g.n||'')+' '+String(g.h||'')+' '+String(g.genre||'')).toLowerCase(),themeText=starterTheme;
+  const zombieWorld=/zombi|zombie|apocalipsis|infectad/.test(starterTheme),survivalWorld=/supervivencia|survival|zombi|zombie|apocalipsis/.test(starterTheme),habitatWorld=/ciudad|pueblo|villa|barrio|puerto|shopping|mall|supermercado|supermarket|roleplay|social|simulador|simulator|casas|casa|house|homes|residencial|viviendas|hospital|escuela|school|hotel|granja|farm|delivery|reparto|cocina|cooking|rescate|refugio/.test(starterTheme),nearSurvivalRing=survivalWorld&&Math.max(Math.abs(cx),Math.abs(cz))===1,nearHabitatRing=habitatWorld&&Math.max(Math.abs(cx),Math.abs(cz))===1&&(Math.abs(cx)+Math.abs(cz)>0);
+  const worldType=/d6|d21|d24/.test(String(g.id||''))||/roleplay|delivery|cooking|tycoon|ciudad|pueblo|villa|barrio|puerto|shopping|mall|f[aá]brica|hotel|city|village|town|metro|social|simulador|simulator|supervivencia|survival|zombi|zombie|apocalipsis|residencial|viviendas|casas|house|homes|hospital|escuela|school/.test(themeText)?'city':/d11/.test(String(g.id||''))||/desierto|pir[aá]mide|arena|desert|pyramid/.test(themeText)?'desert':/d12/.test(String(g.id||''))||/hielo|nieve|glaciar|invierno|ice|snow|frozen|winter/.test(themeText)?'snow':/d18/.test(String(g.id||''))||/mar|oc[eé]ano|arrecife|submarin|pesca|costa|bah[ií]a|ocean|underwater|reef|fishing|coast/.test(themeText)?'sea':/d9|d15|d25/.test(String(g.id||''))||/espacial|luna|c[oó]smic|space|moon|orbit/.test(themeText)?'space':/d5|d14|d26|d27/.test(String(g.id||''))||/ruinas|templo|mazmorra|defensa|escape|dungeon|ruins|haunted|abandonad/.test(themeText)?'ruins':/d20|d2|d8|d10/.test(String(g.id||''))||/granja|farm|bosque|jungle|jungla|rescate|mascota|refugio|hide|rescue|forest|isla salvaje/.test(themeText)?'nature':'village';
   if(lava){makeProcBlock([x,.12,z,12,.24,12,groundColor,1,1,'',0,0,0],blocks);makeProcBlock([x,.1,z-13.5,3,.2,15,groundColor,1,1,'',0,0,0],blocks);makeProcBlock([x+13.5,.1,z,15,.2,3,groundColor,1,1,'',0,0,0],blocks)}
   else makeProcBlock([x,-.25,z,28,.5,28,groundColor,1,1,'',0,0,0],blocks);
-  // Keep hand-built spawns clear, but start a safe residential ring around survival/zombie maps.
-  const starterTheme=(String(g.n||'')+' '+String(g.h||'')+' '+String(g.genre||'')).toLowerCase(),zombieWorld=/zombi|zombie|apocalipsis|infectad/.test(starterTheme),survivalWorld=/supervivencia|survival|zombi|zombie|apocalipsis/.test(starterTheme),habitatWorld=/ciudad|pueblo|villa|barrio|puerto|shopping|mall|supermercado|supermarket|roleplay|casas|casa|house|homes|residencial|viviendas|hospital|escuela|school|hotel|granja|farm|delivery|reparto|cocina|cooking|rescate|refugio/.test(starterTheme),nearSurvivalRing=survivalWorld&&Math.max(Math.abs(cx),Math.abs(cz))===1,nearHabitatRing=habitatWorld&&Math.max(Math.abs(cx),Math.abs(cz))===1&&(Math.abs(cx)+Math.abs(cz)>0);
-  const themeText=starterTheme;
-  // El tema del mapa se define al nivel de chunkBuild porque también lo usan los NPC y animales que aparecen al final.
-  const type=/d6|d21|d24/.test(g.id)||/roleplay|delivery|cooking|tycoon|ciudad|pueblo|villa|barrio|puerto|shopping|mall|f[aá]brica|hotel|city|village|town|metro|supervivencia|survival|zombi|zombie|apocalipsis|residencial|viviendas|casas|house|homes|hospital|escuela|school/.test(themeText)?'city':/d11/.test(g.id)||/desierto|pir[aá]mide|arena|desert|pyramid/.test(themeText)?'desert':/d12/.test(g.id)||/hielo|nieve|glaciar|invierno|ice|snow|frozen|winter/.test(themeText)?'snow':/d18/.test(g.id)||/mar|oc[eé]ano|arrecife|submarin|pesca|costa|bah[ií]a|ocean|underwater|reef|fishing|coast/.test(themeText)?'sea':/d9|d15|d25/.test(g.id)||/espacial|luna|c[oó]smic|space|moon|orbit/.test(themeText)?'space':/d5|d14|d26|d27/.test(g.id)||/ruinas|templo|mazmorra|defensa|escape|dungeon|ruins|haunted|abandonad/.test(themeText)?'ruins':/d20|d2|d8|d10/.test(g.id)||/granja|farm|bosque|jungle|jungla|rescate|mascota|refugio|hide|rescue|forest|isla salvaje/.test(themeText)?'nature':'village';
+  // Las constantes de clasificación ya se preparan al entrar en chunkBuild; no redeclararlas dentro del sector.
+
   if(far||nearSurvivalRing||nearHabitatRing){
    const make=(xx,yy,zz,ww,hh,dd,col,solid=true,kind=0,flag=0)=>makeProcBlock([xx,yy,zz,ww,hh,dd,col,1,solid?1:0,'',kind,0,flag],blocks,!solid);
-   const rnd=i=>hashRand(cx,cz,i),themeMarket=/shopping|mall|centro comercial/.test(themeText)?'mall':/supermercado|supermarket/.test(themeText)?'supermarket':'',areaMarket=type==='city'&&!themeMarket&&!infiniteCourse?(rnd(770)<.055?'mall':rnd(771)<.18?'supermarket':''):'',marketMode=themeMarket||areaMarket,count=type==='city'?(marketMode?1:4):3+(rnd(3)*2|0);
-   if(type==='city'){
+   const rnd=i=>hashRand(cx,cz,i),themeMarket=/shopping|mall|centro comercial/.test(themeText)?'mall':/supermercado|supermarket/.test(themeText)?'supermarket':'',areaMarket=worldType==='city'&&!themeMarket&&!infiniteCourse?(rnd(770)<.055?'mall':rnd(771)<.18?'supermarket':''):'',marketMode=themeMarket||areaMarket,count=worldType==='city'?(marketMode?1:4):3+(rnd(3)*2|0);
+   if(worldType==='city'){
     // Las calles corren por los bordes de cada manzana; las parcelas quedan dentro, no sobre el asfalto.
     make(x+14,.025,z,4.2,.07,28,'#303842',false);make(x,.025,z+14,28,.07,4.2,'#303842',false);
     for(const side of [-1,1]){make(x+14+side*3.0,.09,z,1.35,.12,28,'#b9bec7',false);make(x,.09,z+14+side*3.0,28,.12,1.35,'#b9bec7',false)}
     for(let j=-2;j<=2;j++){make(x+14+j*0.72,.11,z+14,1.05,.02,.13,'#f8d66d',false);make(x+14,.11,z+14+j*.72,.13,.02,1.05,'#f8d66d',false)}
     if(rnd(333)>.24){for(const side of [-1,1]){const lx=x+14+side*4.1,lz=z+(rnd(334)>.5?6.5:21.5);make(lx,1.5,lz,.18,2.8,.18,'#525b64',true);make(lx,2.95,lz,.7,.22,.7,'#ffe8a3',false,2,6);make(lx,.25,lz+1,.8,.45,.8,'#795548',true);make(lx,.68,lz+1,.85,.55,.85,'#42784b',false,1)}}
    }
-   if(type==='city'&&WORLD_HOST&&!marketMode){const green=[];addDetailedTree(green,x,z,Math.abs(cx+cz)%4,.42);addFlowerBed(green,x-1.7,z-1.7,Math.abs(cx)%3);addGardenShrub(green,x+1.55,z+1.5,Math.abs(cz)%4,.46);green.forEach(b=>makeProcBlock(b,blocks));make(x,.035,z,2.8,.07,.28,'#cfb997',false);make(x,.035,z, .28,.07,2.8,'#cfb997',false)}
-   for(let i=0;i<count;i++){const slotX=[-5.5,5.5,-5.5,5.5][i%4],slotZ=[-5.5,-5.5,5.5,5.5][i%4],px=type==='city'?(marketMode?x:x+slotX):x+(rnd(i+8)-.5)*20,pz=type==='city'?(marketMode?z:z+slotZ):z+(rnd(i+28)-.5)*20;if(type!=='city'&&Math.hypot(px-pl.p.x,pz-pl.p.z)<7)continue;if(type==='city'&&nearSurvivalRing&&Math.hypot(px-(SP[0]||0),pz-(SP[2]||0))<11)continue;
-    if(type==='city'){
+   if(worldType==='city'&&WORLD_HOST&&!marketMode){const green=[];addDetailedTree(green,x,z,Math.abs(cx+cz)%4,.42);addFlowerBed(green,x-1.7,z-1.7,Math.abs(cx)%3);addGardenShrub(green,x+1.55,z+1.5,Math.abs(cz)%4,.46);green.forEach(b=>makeProcBlock(b,blocks));make(x,.035,z,2.8,.07,.28,'#cfb997',false);make(x,.035,z, .28,.07,2.8,'#cfb997',false)}
+   for(let i=0;i<count;i++){const slotX=[-5.5,5.5,-5.5,5.5][i%4],slotZ=[-5.5,-5.5,5.5,5.5][i%4],px=worldType==='city'?(marketMode?x:x+slotX):x+(rnd(i+8)-.5)*20,pz=worldType==='city'?(marketMode?z:z+slotZ):z+(rnd(i+28)-.5)*20;if(worldType!=='city'&&Math.hypot(px-pl.p.x,pz-pl.p.z)<7)continue;if(worldType==='city'&&nearSurvivalRing&&Math.hypot(px-(SP[0]||0),pz-(SP[2]||0))<11)continue;
+    if(worldType==='city'){
      if(marketMode==='mall'){const p=[];addTallBuilding(p,px,pz,{floors:5+Math.floor(rnd(400)*11),wall:['#b8c7d8','#e6d2ba','#7f7aad'][Math.abs(cx+cz)%3],glass:'#75def4',trim:'#f8e8c8',roof:'#2b203d',width:16,depth:16,enterable:true,kind:'mall',stairSide:(rnd(401)>.5?1:-1)});p.forEach(b=>makeProcBlock(b,blocks));}
      else if(marketMode==='supermarket'){const p=[];addTallBuilding(p,px,pz,{floors:1+Math.floor(rnd(402)*2),wall:['#e6d2ba','#c9d9e8','#b5c99c'][Math.abs(cx+cz)%3],glass:'#70dff1',trim:'#fff0d1',roof:'#405363',width:16,depth:16,enterable:true,kind:'supermarket',stairSide:(rnd(403)>.5?1:-1)});p.forEach(b=>makeProcBlock(b,blocks));}
      else if(i===0){const floors=5+Math.floor(rnd(i+48)*11),w=8.5+rnd(i+68)*1.1,d=8.5+rnd(i+88)*1.1,c=['#343a40','#495057','#5a189a','#264653','#34345a','#8e9aa8'][Math.abs(cx+cz)%6],p=[];addTallBuilding(p,px,pz,{floors,wall:c,glass:'#6fe0f5',trim:'#dbeafe',roof:'#28313d',width:w,depth:d,enterable:true,kind:'residencial',stairSide:slotX>0?-1:1});p.forEach(b=>makeProcBlock(b,blocks));
@@ -1392,16 +1393,16 @@ function play(id,roomCode='',createRoom=false){
      }else if(i===2&&rnd(i+288)>.2){const prefab=[];addDetailedHouse(prefab,px,pz,['#c9a66b','#b08968','#d4a373','#adb5bd'][Math.abs(cx+cz+i)%4],['#8d5524','#a23b3b','#343a40'][Math.abs(cx*5+cz)%3]);prefab.forEach(b=>{const q=b.slice();q[0]=px+(q[0]-px)*.82;q[2]=pz+(q[2]-pz)*.82;q[1]=.08+(q[1]-.08)*.9;q[3]*=.82;q[4]*=.9;q[5]*=.82;makeProcBlock(q,blocks)})
      }else{const prefab=[];addDetailedHouse(prefab,px,pz,['#c9a66b','#b08968','#d4a373'][Math.abs(cx+cz+i)%3],i%2?'#8d5524':'#a23b3b');prefab.forEach(b=>{const q=b.slice();q[0]=px+(q[0]-px)*.82;q[2]=pz+(q[2]-pz)*.82;q[1]=.08+(q[1]-.08)*.9;q[3]*=.82;q[4]*=.9;q[5]*=.82;makeProcBlock(q,blocks)})}
     }
-    else if(type==='nature'||type==='village'){if(i%4===0&&((cx*3+cz*5+i)%3!==0)){const prefab=[];addDetailedHouse(prefab,px,pz,['#c9a66b','#b08968','#d4a373'][Math.abs(cx+cz+i)%3],i%2?'#8d5524':'#a23b3b');prefab.forEach(b=>{const q=b.slice();q[0]=px+(q[0]-px)*.59;q[2]=pz+(q[2]-pz)*.59;q[1]=.08+(q[1]-.08)*.76;q[3]*=.59;q[4]*=.76;q[5]*=.59;makeProcBlock(q,blocks)})}
+    else if(worldType==='nature'||worldType==='village'){if(i%4===0&&((cx*3+cz*5+i)%3!==0)){const prefab=[];addDetailedHouse(prefab,px,pz,['#c9a66b','#b08968','#d4a373'][Math.abs(cx+cz+i)%3],i%2?'#8d5524':'#a23b3b');prefab.forEach(b=>{const q=b.slice();q[0]=px+(q[0]-px)*.59;q[2]=pz+(q[2]-pz)*.59;q[1]=.08+(q[1]-.08)*.76;q[3]*=.59;q[4]*=.76;q[5]*=.59;makeProcBlock(q,blocks)})}
      else{const treeBits=[];addDetailedTree(treeBits,px,pz,Math.abs(i+cx+cz)%4,.62+rnd(i+109)*.18);treeBits.forEach(b=>makeProcBlock(b,blocks));if(i%2===0){const shrub=[];addGardenShrub(shrub,px+2.25,pz+1.4,(i+cx+cz)%4,.68);shrub.forEach(b=>makeProcBlock(b,blocks));const flowers=[];addFlowerBed(flowers,px-2,pz+1.25,i%3);flowers.forEach(b=>makeProcBlock(b,blocks))}if(i%5===1){for(let layer=0;layer<3;layer++){const hw=2.5-layer*.55,hy=.38+layer*.34;make(px+(layer-1)*.38,hy,pz+(layer%2-.5)*.32,hw,.68,hw,['#839b68','#748b5f','#647a52'][layer],false,1)}}}}
-    else if(type==='desert'){make(px,.7,pz,1.7+rnd(i+111)*2,1.4,1.5+rnd(i+112)*2,i%2?'#c2a878':'#a98457');if(i%3===0){make(px+1,1.1,pz,.25,2.2,.25,'#6b8e23');make(px+1,2.3,pz,1.3,.15,1.3,'#718355')}}
-    else if(type==='snow'){make(px,.65,pz,1.5,1.3,1.5,'#8d99ae');make(px,.65,pz,1.65,1.4,1.65,'#e9ecef',false)}
-    else if(type==='sea'){const hh=1.5+rnd(i+122)*2;make(px,hh/2,pz,.5,hh,.5,['#00b4d8','#ff6b8a','#80ffdb'][i%3]);make(px,hh+.2,pz,.4,.4,.4,'#ffd166',false,2,6)}
-    else if(type==='space'){make(px,.25,pz,3+rnd(i+133)*2,.5,3+rnd(i+134)*2,['#6a4c93','#4361ee','#4cc9f0'][i%3]);if(i%2===0)make(px,.8,pz,.45,.45,.45,'#ffd166',false,2,6)}
-    else{make(px,.7,pz,1.6,1.4,1.6,type==='ruins'?'#5c5470':'#6c757d');if(i%2===0)make(px,1.7,pz,.6,.6,.6,'#ffd166',false,2,6)}
+    else if(worldType==='desert'){make(px,.7,pz,1.7+rnd(i+111)*2,1.4,1.5+rnd(i+112)*2,i%2?'#c2a878':'#a98457');if(i%3===0){make(px+1,1.1,pz,.25,2.2,.25,'#6b8e23');make(px+1,2.3,pz,1.3,.15,1.3,'#718355')}}
+    else if(worldType==='snow'){make(px,.65,pz,1.5,1.3,1.5,'#8d99ae');make(px,.65,pz,1.65,1.4,1.65,'#e9ecef',false)}
+    else if(worldType==='sea'){const hh=1.5+rnd(i+122)*2;make(px,hh/2,pz,.5,hh,.5,['#00b4d8','#ff6b8a','#80ffdb'][i%3]);make(px,hh+.2,pz,.4,.4,.4,'#ffd166',false,2,6)}
+    else if(worldType==='space'){make(px,.25,pz,3+rnd(i+133)*2,.5,3+rnd(i+134)*2,['#6a4c93','#4361ee','#4cc9f0'][i%3]);if(i%2===0)make(px,.8,pz,.45,.45,.45,'#ffd166',false,2,6)}
+    else{make(px,.7,pz,1.6,1.4,1.6,worldType==='ruins'?'#5c5470':'#6c757d');if(i%2===0)make(px,1.7,pz,.6,.6,.6,'#ffd166',false,2,6)}
    }
   }
-  if(type==='city'&&WORLD_HOST&&!infiniteCourse){
+  if(worldType==='city'&&WORLD_HOST&&!infiniteCourse){
    const zombieTheme=/zombi|zombie|apocalipsis|infectad/.test(themeText),habitable=/ciudad|pueblo|villa|barrio|roleplay|casa|house|homes|casas|granja|farm|delivery|reparto|hospital|escuela|school|hotel|supermercado|shopping|mall|supervivencia|survival/.test(themeText);
    if(habitable&&!zombieTheme&&mobs.filter(m=>m.pc&&!m.animal&&!m.dead).length<14&&Math.hypot(x-pl.p.x,z-pl.p.z)>10){
     const npx=x+(rnd(811)>.5?11:-11),npz=z+(rnd(812)>.5?11:-11);
