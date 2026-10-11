@@ -1,4 +1,4 @@
-const C='nixora-v25-crash-recovery-20261011',F=['./','index.html','style.css','script.js','script.js?v=nx25-crash-recovery-20261011','manifest.json'];
+const C='nixora-v26-avatar-gallery-fix-20261011',F=['./','index.html','style.css','script.js','script.js?v=nx26-avatar-gallery-fix-20261011','manifest.json'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll(F)).catch(err=>{console.warn('No se pudo precargar toda la caché de Nixora:',err)}).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('nixora-')&&k!==C).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;e.respondWith(fetch(e.request).then(r=>{if(r&&r.ok){const x=r.clone();caches.open(C).then(c=>c.put(e.request,x)).catch(()=>{})}return r}).catch(()=>caches.match(e.request).then(cached=>cached||Response.error()))) });
