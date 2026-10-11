@@ -12,7 +12,22 @@
 <aside id="side"></aside><main id="main"></main></div>
 <div id="play" hidden><canvas id="cv"></canvas>
 <div id="hud"><b id="gt"></b><div id="pl"></div><small id="fps"></small><small id="sc"></small><small id="hp"></small><small id="wl"></small><small>WASD mover · Espacio saltar · Shift agacharse · I/O zoom (1.ª persona) · Clic: mirar con el ratón (Esc suelta) · F: atacar · Esc: pausa / salir</small></div>
-<button id="ex" onclick="document.querySelector('#pm').hidden=false">☰ Menú</button><div id="joy"><div id="knob"></div></div><div id="dpad" aria-label="Controles de movimiento"><button id="upb">▲</button><div><button id="leftb">◀</button><button id="downb">▼</button><button id="rightb">▶</button></div></div><button id="jb" aria-label="Saltar" title="Saltar">⬆</button><button id="cb" aria-label="Agacharse" title="Agacharse">🧎</button><button id="ab" hidden aria-label="Atacar" title="Atacar">⚔</button><button id="ib" hidden aria-label="Interactuar" title="Interactuar">E</button><div id="pm" hidden><div class="box"><h2>Pausa</h2><button onclick="$('#pm').hidden=true">▶ Reanudar</button><button class="s" onclick="$('#pm').hidden=true;showGameInstructions()">📖 Instrucciones</button><button class="s" onclick="$('#pm').hidden=true;quit()">✖ Salir del juego</button></div></div><div id="gameInstructions" hidden role="dialog" aria-modal="true" aria-labelledby="gameHelpTitle"><div class="game-help-card"><button class="game-help-close" onclick="closeGameInstructions()" aria-label="Cerrar instrucciones">✕</button><div id="gameInstructionsContent"></div><button class="game-help-primary" onclick="closeGameInstructions()">¡Entendido, jugar!</button></div></div>
+<button id="ex" onclick="openPauseMenu('Players')">☰ Menú</button><div id="joy"><div id="knob"></div></div><div id="dpad" aria-label="Controles de movimiento"><button id="upb">▲</button><div><button id="leftb">◀</button><button id="downb">▼</button><button id="rightb">▶</button></div></div><button id="jb" aria-label="Saltar" title="Saltar">⬆</button><button id="cb" aria-label="Agacharse" title="Agacharse">🧎</button><button id="ab" hidden aria-label="Atacar" title="Atacar">⚔</button><button id="ib" hidden aria-label="Interactuar" title="Interactuar">E</button><div id="pm" hidden aria-label="Menú de pausa"><div class="nx-pause-shell">
+  <div class="nx-pause-tabs" role="tablist" aria-label="Pausa">
+    <button class="nx-pause-tab active" data-tab="Players" onclick="pauseMenuTab('Players')"><span>♙</span> Players</button>
+    <button class="nx-pause-tab" data-tab="Settings" onclick="pauseMenuTab('Settings')"><span>⚙</span> Settings</button>
+    <button class="nx-pause-tab" data-tab="Report" onclick="pauseMenuTab('Report')"><span>⚑</span> Report</button>
+    <button class="nx-pause-tab" data-tab="Help" onclick="pauseMenuTab('Help')"><span>ⓘ</span> Help</button>
+    <button class="nx-pause-tab" data-tab="Record" onclick="pauseMenuTab('Record')"><span>⏺</span> Record</button>
+  </div>
+  <div class="nx-pause-content" id="nxPauseContent"></div>
+  <div class="nx-pause-bottom">
+    <button class="nx-pause-action" onclick="pauseMenuAction('reset')"><span class="nx-pause-key">R</span><b>Reset Character</b></button>
+    <button class="nx-pause-action" onclick="pauseMenuAction('leave')"><span class="nx-pause-key">L</span><b>Leave Game</b></button>
+    <button class="nx-pause-action" onclick="pauseMenuAction('instructions')"><span class="nx-pause-key">📖</span><b>Instructions</b></button>
+    <button class="nx-pause-action nx-pause-resume" onclick="pauseMenuAction('resume')"><span class="nx-pause-key">ESC</span><b>Resume Game</b></button>
+  </div>
+</div></div><div id="gameInstructions" hidden role="dialog" aria-modal="true" aria-labelledby="gameHelpTitle"><div class="game-help-card"><button class="game-help-close" onclick="closeGameInstructions()" aria-label="Cerrar instrucciones">✕</button><div id="gameInstructionsContent"></div><button class="game-help-primary" onclick="closeGameInstructions()">¡Entendido, jugar!</button></div></div>
 <div id="chat" class="chat-hidden" aria-label="Chat público del juego"><button id="chatToggle" type="button" aria-expanded="false" onclick="toggleGameChat()" title="Mostrar u ocultar chat">−</button><div id="log" aria-live="polite"></div><div class="r"><input id="ci" placeholder="Escribe y pulsa Enter…" autocomplete="off" maxlength="200"><button id="chatSend" type="button" onclick="sendGameChat()">Enviar</button></div></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="script.js"></script></body></html>
