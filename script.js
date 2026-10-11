@@ -1090,7 +1090,29 @@ function play(id,roomCode='',createRoom=false){
  const addM=b=>{const m=shp(b);m.position.set(b[0],b[1],b[2]);m.castShadow=m.receiveShadow=useShadows;m.userData.b=b;b.m=m;sc.add(m);return m};
  const canInstanceBlock=b=>Array.isArray(b)&&!b[12]&&!b[13]&&GEO.length>0;
  const splitRenderGroups=(blocks,cellSize=56)=>{const groups=new Map(),individual=[];for(const b of blocks){if(!canInstanceBlock(b)){individual.push(b);continue}const cellX=Math.floor(b[0]/cellSize),cellZ=Math.floor(b[2]/cellSize),shape=Math.max(0,Math.min(GEO.length-1,b[10]|0)),material=mat(b),key=cellX+','+cellZ+'|'+shape+'|'+material.uuid;let group=groups.get(key);if(!group)groups.set(key,group={shape,material,blocks:[]});group.blocks.push(b)}const out=[];for(const group of groups.values())for(let i=0;i<group.blocks.length;i+=1200)out.push({...group,blocks:group.blocks.slice(i,i+1200)});return {groups:out,individual}};
- const addInstanceGroup=(group,target=sc)=>{const mesh=new THREE.InstancedMesh(GEO[group.shape]||GEO[0],group.material,group.blocks.length),dummy=new THREE.Object3D();mesh.instanceMatrix.setUsage(THREE.StaticDrawUsage);for(let i=0;i<group.blocks.length;i++){const b=group.blocks[i];dummy.position.set(b[0],b[1],b[2]);dummy.rotation.set((b[16]||0)*Math.PI/180,(b[17]||0)*Math.PI/180,(b[18]||0)*Math.PI/180);dummy.scale.set(Math.max(.001,Math.abs(b[3])),Math.max(.001,Math.abs(b[4])),Math.max(.001,Math.abs(b[5])));dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix)}mesh.instanceMatrix.needsUpdate=true;mesh.castShadow=mesh.receiveShadow=useShadows;mesh.frustumCulled=true;mesh.computeBoundingSphere();target.add(mesh);return mesh};
+ // Three.js r128 no implementa InstancedMesh.computeBoundingSphere(). Cada lote usa
+ // una geometría clonada con límites que abarcan TODAS las instancias para que el
+ // frustum culling sea correcto sin llamar a un método inexistente.
+ const addInstanceGroup=(group,target=sc)=>{
+  const sourceGeometry=GEO[group.shape]||GEO[0],geometry=sourceGeometry.clone();
+  if(!geometry.boundingSphere)geometry.computeBoundingSphere();
+  const baseSphere=geometry.boundingSphere.clone();
+  const mesh=new THREE.InstancedMesh(geometry,group.material,group.blocks.length),dummy=new THREE.Object3D();
+  const bounds=new THREE.Box3().makeEmpty(),vmin=new THREE.Vector3(),vmax=new THREE.Vector3();
+  mesh.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+  for(let i=0;i<group.blocks.length;i++){
+   const b=group.blocks[i];
+   const sx=Math.max(.001,Math.abs(b[3])),sy=Math.max(.001,Math.abs(b[4])),sz=Math.max(.001,Math.abs(b[5]));
+   dummy.position.set(b[0],b[1],b[2]);
+   dummy.rotation.set((b[16]||0)*Math.PI/180,(b[17]||0)*Math.PI/180,(b[18]||0)*Math.PI/180);
+   dummy.scale.set(sx,sy,sz);dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);
+   const c=baseSphere.center.clone().applyMatrix4(dummy.matrix),r=baseSphere.radius*Math.max(sx,sy,sz);
+   vmin.set(c.x-r,c.y-r,c.z-r);vmax.set(c.x+r,c.y+r,c.z+r);bounds.expandByPoint(vmin);bounds.expandByPoint(vmax);
+  }
+  if(!bounds.isEmpty())bounds.getBoundingSphere(geometry.boundingSphere);
+  mesh.instanceMatrix.needsUpdate=true;mesh.castShadow=mesh.receiveShadow=useShadows;mesh.frustumCulled=true;
+  target.add(mesh);return mesh;
+ };
  // Render all pieces, including non-collidable windows/lamps/furniture. Batch solid opaque geometry to cut draw calls dramatically.
  const initialRenderBlocks=(Array.isArray(g.b)?g.b:[]).filter(b=>Array.isArray(b)&&b.length>=7&&Number.isFinite(Number(b[0]))),initialPlan=splitRenderGroups(initialRenderBlocks),initialMeshQueue=initialPlan.individual,initialGroupQueue=initialPlan.groups;let initialMeshCursor=0,initialGroupCursor=0;
  const buildInitialMeshBatch=(limit=coarseDevice?32:72)=>{let count=0;while(initialMeshCursor<initialMeshQueue.length&&count<limit){addM(initialMeshQueue[initialMeshCursor++]);count++}let groupLimit=coarseDevice?5:10;while(initialGroupCursor<initialGroupQueue.length&&groupLimit-->0)addInstanceGroup(initialGroupQueue[initialGroupCursor++]);return initialMeshCursor>=initialMeshQueue.length&&initialGroupCursor>=initialGroupQueue.length};
