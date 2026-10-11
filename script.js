@@ -1,4 +1,33 @@
 if(!window.THREE)document.body.insertAdjacentHTML('afterbegin','<div style="background:#b00020;color:#fff;padding:10px;text-align:center;position:relative;z-index:9">⚠ No cargó el motor 3D (Three.js). Conéctate a internet y recarga la página.</div>');
+
+// Compatibilidad con Three.js r128: versiones antiguas de InstancedMesh no incluyen
+// computeBoundingSphere/computeBoundingBox. El motor necesita estos métodos en algunos
+// recorridos del renderizador; su ausencia no debe cerrar toda la partida.
+(function installInstancedMeshBoundsCompat(){
+ if(!window.THREE||!THREE.InstancedMesh||!THREE.InstancedMesh.prototype)return;
+ const proto=THREE.InstancedMesh.prototype;
+ if(typeof proto.computeBoundingSphere!=='function')proto.computeBoundingSphere=function(){
+  const geom=this.geometry;
+  if(geom&&!geom.boundingSphere&&typeof geom.computeBoundingSphere==='function')geom.computeBoundingSphere();
+  const base=geom&&geom.boundingSphere?geom.boundingSphere:new THREE.Sphere(new THREE.Vector3(),.5);
+  const box=new THREE.Box3().makeEmpty(),matrix=new THREE.Matrix4(),sphere=new THREE.Sphere();
+  const min=new THREE.Vector3(),max=new THREE.Vector3(),count=Math.max(0,Number(this.count)||0);
+  for(let i=0;i<count;i++){
+   if(typeof this.getMatrixAt==='function')this.getMatrixAt(i,matrix);else matrix.fromArray(this.instanceMatrix.array,i*16);
+   sphere.copy(base).applyMatrix4(matrix);const r=Math.max(0,sphere.radius),c=sphere.center;
+   min.set(c.x-r,c.y-r,c.z-r);max.set(c.x+r,c.y+r,c.z+r);box.expandByPoint(min);box.expandByPoint(max);
+  }
+  this.boundingSphere=box.isEmpty()?new THREE.Sphere(base.center.clone(),base.radius):box.getBoundingSphere(this.boundingSphere||new THREE.Sphere());
+  return this.boundingSphere;
+ };
+ if(typeof proto.computeBoundingBox!=='function')proto.computeBoundingBox=function(){
+  const geom=this.geometry;if(geom&&!geom.boundingBox&&typeof geom.computeBoundingBox==='function')geom.computeBoundingBox();
+  const base=geom&&geom.boundingBox?geom.boundingBox:new THREE.Box3(new THREE.Vector3(-.5,-.5,-.5),new THREE.Vector3(.5,.5,.5));
+  const box=new THREE.Box3().makeEmpty(),matrix=new THREE.Matrix4(),count=Math.max(0,Number(this.count)||0);
+  for(let i=0;i<count;i++){if(typeof this.getMatrixAt==='function')this.getMatrixAt(i,matrix);else matrix.fromArray(this.instanceMatrix.array,i*16);const b=base.clone().applyMatrix4(matrix);box.union(b)}
+  this.boundingBox=box;return box;
+ };
+})();
 const $=s=>document.querySelector(s),
 ld=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}},
 sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},
@@ -472,7 +501,7 @@ game.onKill(()=>{alive--;kills++;game.sound('Explosión');if(!alive){if(wv==10)g
 {id:'d33',n:'Carrera Parkour Turbo',h:'#obby #parkour #carrera #velocidad #infinito',d:'Prueba contrarreloj con aceleradores, bloques móviles, puentes estrechos y checkpoints regulares.',gr:'#15232e',b:[],sp:[0,.3,0],lava:1,st:{walk:8.5,clock:21,clouds:0,sky:'#102033'},by:'Nixora',th:'linear-gradient(135deg,#00f5d4,#5a189a)',sc:OBBY_INFINITE_SCRIPT('race')},
 {id:'d34',n:'Parkour del Bosque Infinito',h:'#parkour #obby #bosque #aventura #infinito',d:'Un sendero aéreo entre plataformas de madera, puentes, troncos y retos que cambian continuamente.',gr:'#14301a',b:[],sp:[0,.3,0],lava:1,st:{clock:10,sky:'#1b4332'},by:'Nixora',th:'linear-gradient(135deg,#1b5e20,#95d5b2)',sc:OBBY_INFINITE_SCRIPT('forest')} ];
 
-/* ---------- Catálogo ampliado: 90 experiencias generadas con mapas y objetivos propios ---------- */
+/* ---------- Catálogo curado: experiencias representativas por género; se quitan variantes repetitivas ---------- */
 const NX_GAME_FAMILIES = [
  {k:'obby',prefix:'Obby Infinito',tag:'#obby #parkour #infinito',desc:'Recorrido interminable con patrones de saltos, plataformas móviles, escaleras, túneles, aceleradores y checkpoints.',modes:['classic','lava','climb','neon','gravity','race','forest','water'],names:['Templo Volcánico','Bosque de Cristal','Rascacielos Neón','Glaciar Suspendido','Ruinas del Dragón','Tubos Cósmicos','Castillo de Lava','Islas Turbo'],colors:['#ff6b35','#00e5ff','#80ffdb','#ffd166']},
  {k:'race',prefix:'Gran Premio',tag:'#carreras #parkour #velocidad',desc:'Circuito amplio con carriles, pórticos de control, saltos y aceleradores. Completa los sectores y vence tu tiempo.',names:['Costa Tropical','Neón Urbano','Cañón Rojo','Glaciar Azul','Puerto Espacial','Bosque Rally','Desierto Rally','Autopista Nocturna'],colors:['#00e5ff','#ffd166','#ff6b35','#2fbf71']},
@@ -680,7 +709,7 @@ function nxBuildScript(family,seed,title,palette){
  return `${common}game.sword();let boss=null,won=false;game.say('🗺️ Recorre los puntos de interés, reúne reliquias y alcanza el monumento dorado al final del camino.');game.onTick(()=>{if(!boss&&P.p.z<-30&&Math.abs(P.p.x)<12){boss=game.mob(0,-36,{boss:true,hp:130+${seedNum%5}*20,size:1.8,speed:1.9,dmg:10,color:C[1]});game.say('🛡️ ¡Un guardián protege el monumento!')}if(boss&&boss.dead&&!won){won=true;game.say('🏆 ¡Aventura completada!');game.sound('Victoria')}game.hud('🗺️ Reliquias '+game.coins()+'/12 · '+(won?'🏆 Guardián derrotado':boss?'🛡️ Guardián '+Math.max(0,boss.hp|0):'Llega al monumento dorado'))});`;
 }
 const NX_GENERATED_GAMES=[];
-NX_GAME_FAMILIES.forEach((family,fi)=>family.names.slice(0,({obby:8,duel:8,tycoon:4,survival:4,defense:3,dungeon:3,race:3,sport:3,sky:4,underwater:3,adventure:3,roleplay:3,maze:3,escape:3,puzzle:3,farm:3,treasure:3,fishing:3,cooking:3,hide:3,rescue:3,rhythm:3,delivery:3}[family.k]||3)).forEach((variant,vi)=>{
+NX_GAME_FAMILIES.forEach((family,fi)=>family.names.slice(0,({obby:2,duel:2,tycoon:1,survival:2,defense:1,dungeon:1,race:2,sport:1,sky:1,underwater:1,adventure:2,roleplay:2,maze:1,escape:1,puzzle:1,farm:1,treasure:1,fishing:1,cooking:1,hide:1,rescue:1,rhythm:1,delivery:1}[family.k]||1)).forEach((variant,vi)=>{
  const seed=fi*17+vi+11,palette=family.colors.map((c,i)=>{if(i===0)return c;return c});
  const title=family.k==='roleplay'?family.prefix+' '+variant:family.k==='puzzle'?family.prefix+' '+variant:family.prefix+': '+variant;
  const obby=family.k==='obby';
@@ -690,6 +719,10 @@ NX_GAME_FAMILIES.forEach((family,fi)=>family.names.slice(0,({obby:8,duel:8,tycoo
  NX_GENERATED_GAMES.push({id:'nxg'+String(seed).padStart(3,'0'),n:title,h:family.tag,d:family.desc+' Variante '+(vi+1)+', con distribución de obstáculos y decoración propia.',gr:palette[0],b:blocks,sp,st:family.k==='underwater'?{clock:13,grav:18,clouds:0,sky:'#168aad'}:family.k==='sky'?{grav:22,clouds:1,sky:'#8ecae6'}:family.k==='survival'||family.k==='escape'?{clock:22,clouds:0,sky:'#171421'}:family.k==='duel'?{clock:17,clouds:0,sky:'#20243b'}:{clock:14},by:'Nixora',th:`linear-gradient(135deg,${palette[0]},${palette[1]})`,sc:nxBuildScript(family.k,seed,title,palette),lava:obby||family.k==='sky',endless:obby,genre:family.k,themeSeed:seed,pvp:family.k==='duel',combat:['duel','survival','defense','dungeon'].includes(family.k)});
 }));
 DEF.push(...NX_GENERATED_GAMES);
+// Retirar obbys/parkours añadidos previamente que duplicaban los modos clásicos.
+const NX_REDUNDANT_DEFAULT_IDS=new Set(['d29','d30','d31','d32','d33','d34']);
+for(let i=DEF.length-1;i>=0;i--)if(NX_REDUNDANT_DEFAULT_IDS.has(DEF[i].id))DEF.splice(i,1);
+
 
 /* ---------- Navegación ---------- */
 let HOME_FILTER='all';
@@ -1115,10 +1148,11 @@ function play(id,roomCode='',createRoom=false){
  // Three.js r128 tiene diferencias entre versiones del renderizador de instancias.
  // Los lotes calculan sus límites manualmente y disponen de una alternativa de mallas
  // normales para que un problema gráfico no cierre la partida.
+ let NX_FORCE_SAFE_MESHES=false;
  const addInstanceGroup=(group,target=sc)=>{
   const sourceGeometry=GEO[group.shape]||GEO[0];
   try{
-   if(typeof THREE.InstancedMesh!=='function'||!sourceGeometry)throw new Error('InstancedMesh no disponible');
+   if(NX_FORCE_SAFE_MESHES||typeof THREE.InstancedMesh!=='function'||!sourceGeometry)throw new Error(NX_FORCE_SAFE_MESHES?'Modo seguro de mallas activado':'InstancedMesh no disponible');
    const geometry=sourceGeometry.clone();
    if(!geometry.boundingSphere&&typeof geometry.computeBoundingSphere==='function')geometry.computeBoundingSphere();
    if(!geometry.boundingSphere)throw new Error('La geometría no tiene límites de renderizado');
@@ -1135,12 +1169,23 @@ function play(id,roomCode='',createRoom=false){
     const c=baseSphere.center.clone().applyMatrix4(dummy.matrix),r=baseSphere.radius*Math.max(sx,sy,sz);
     vmin.set(c.x-r,c.y-r,c.z-r);vmax.set(c.x+r,c.y+r,c.z+r);bounds.expandByPoint(vmin);bounds.expandByPoint(vmax);
    }
-   if(!bounds.isEmpty())bounds.getBoundingSphere(geometry.boundingSphere);
+   // Nunca sobrescribir geometry.boundingSphere con coordenadas del lote: esa esfera
+   // pertenece al modelo local. Los límites globales viven en mesh.boundingSphere.
+   mesh.boundingSphere=bounds.isEmpty()?baseSphere.clone():bounds.getBoundingSphere(new THREE.Sphere());
+   // Polyfill también en la instancia: algunos builds de Three.js consultan el método
+   // directamente sobre el objeto, aunque el prototipo no lo incluya.
+   if(typeof mesh.computeBoundingSphere!=='function')mesh.computeBoundingSphere=function(){
+    if(this.boundingSphere)return this.boundingSphere;
+    this.boundingSphere=bounds.isEmpty()?baseSphere.clone():bounds.getBoundingSphere(new THREE.Sphere());return this.boundingSphere;
+   };
+   if(typeof mesh.computeBoundingBox!=='function')mesh.computeBoundingBox=function(){
+    if(this.boundingBox)return this.boundingBox;
+    this.boundingBox=bounds.clone();return this.boundingBox;
+   };
    mesh.instanceMatrix.needsUpdate=true;mesh.castShadow=mesh.receiveShadow=useShadows;
-   // r128's renderer may call computeBoundingSphere() when an InstancedMesh has no own sphere.
-   // Supply the already-computed sphere explicitly so that method is never needed.
-   mesh.boundingSphere=geometry.boundingSphere.clone();
-   mesh.frustumCulled=true;
+   // Three.js r128 calcula el frustum desde la esfera de la geometría y no conoce bien
+   // las instancias desplazadas; no cullar estos lotes pequeños evita falsos descartes/crashes.
+   mesh.frustumCulled=false;
    target.add(mesh);return mesh;
   }catch(batchError){
    if(!addInstanceGroup._warned){console.warn('Nixora Blox: se desactiva el lote instanciado incompatible y se usa renderizado seguro.',batchError);addInstanceGroup._warned=true}
@@ -1489,7 +1534,15 @@ function play(id,roomCode='',createRoom=false){
   const pending=[];
   for(let xx=cx-radius;xx<=cx+radius;xx++)for(let zz=cz-radius;zz<=cz+radius;zz++){const key=xx+','+zz;if(key!=='0,0'&&!procChunks.has(key))pending.push({x:xx,z:zz,d:(xx-cx)**2+(zz-cz)**2})}
   pending.sort((a,b)=>a.d-b.d);
-  const stamp=performance.now();if(pending.length&&stamp-lastProcChunkBuild>115){const next=pending[0];chunkBuild(next.x,next.z);lastProcChunkBuild=stamp}
+  const stamp=performance.now();if(pending.length&&stamp-lastProcChunkBuild>115){
+   const next=pending[0],key=next.x+','+next.z,bStart=B.length,rlStart=RL.length;
+   try{chunkBuild(next.x,next.z)}catch(chunkErr){
+    console.error('Nixora Blox: se omitió un sector que falló al generarse; la partida continúa.',{sector:key,error:chunkErr});
+    for(let bi=B.length-1;bi>=bStart;bi--){try{collisionUnindexBlock(B[bi])}catch{}B.splice(bi,1)}
+    RL.splice(rlStart);procChunks.set(key,[]);procChunkRenderers.delete(key);
+   }
+   lastProcChunkBuild=stamp;
+  }
   for(const [key,blocks] of procChunks){const [xx,zz]=key.split(',').map(Number);if(Math.abs(xx-cx)>radius+1||Math.abs(zz-cz)>radius+1){const entry=procChunkRenderers.get(key);if(entry){entry.cancelled=true;entry.meshes.forEach(m=>sc.remove(m));procChunkRenderers.delete(key)}for(let i=procRenderJobs.length-1;i>=0;i--)if(procRenderJobs[i].key===key)procRenderJobs.splice(i,1);const gone=new Set(blocks);for(let i=B.length-1;i>=0;i--)if(gone.has(B[i])){collisionUnindexBlock(B[i]);B.splice(i,1)}for(let i=RL.length-1;i>=0;i--)if(gone.has(RL[i]))RL.splice(i,1);blocks.forEach(b=>{if(b.m)sc.remove(b.m)});procChunks.delete(key)}}
  }
  if(S.msg)say('Juego',S.msg);
@@ -1513,6 +1566,26 @@ function play(id,roomCode='',createRoom=false){
  rs=()=>{GR.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()};
  addEventListener('keydown',kd);addEventListener('keyup',ku);addEventListener('pointerup',pu);addEventListener('pointercancel',pu);addEventListener('pointermove',pm);addEventListener('resize',rs);document.onpointerlockchange=()=>{if(!document.pointerLockElement&&!$('#play').hidden&&!APO&&$('#pm').hidden)openPauseMenu('Players')};
  $('#cv').onpointerdown=e=>{if(e.pointerType==='touch'){touchPts.set(e.pointerId,{x:e.clientX,y:e.clientY});if(touchPts.size>=2){dr=0;const pts=[...touchPts.values()];pinchD=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);e.preventDefault();return}}dr=1;cid=e.pointerId;px=e.clientX;py=e.clientY};$('#cv').onclick=()=>{if(TOUCH)return;if(document.pointerLockElement)hit();else if($('#cv').requestPointerLock)$('#cv').requestPointerLock()};$('#cv').onwheel=e=>{dist=Math.max(0,Math.min(ADM.zoom?200:25,dist+e.deltaY*.01))};
+ const convertInstancedMeshesToSafeMeshes=()=>{
+  NX_FORCE_SAFE_MESHES=true;
+  const targets=[];sc.traverse(o=>{if(o&&o.isInstancedMesh&&o.parent)targets.push(o)});
+  let converted=0;
+  for(const inst of targets){
+   const parent=inst.parent,holder=new THREE.Group();holder.name='Safe fallback · '+(inst.name||'InstancedMesh');
+   holder.position.copy(inst.position);holder.quaternion.copy(inst.quaternion);holder.scale.copy(inst.scale);holder.visible=inst.visible;holder.renderOrder=inst.renderOrder;holder.frustumCulled=false;
+   const matrix=new THREE.Matrix4(),pos=new THREE.Vector3(),quat=new THREE.Quaternion(),scale=new THREE.Vector3();
+   const total=Math.max(0,Number(inst.count)||0);
+   for(let i=0;i<total;i++){
+    try{inst.getMatrixAt(i,matrix)}catch{matrix.fromArray(inst.instanceMatrix.array,i*16)}
+    matrix.decompose(pos,quat,scale);
+    const item=new THREE.Mesh(inst.geometry,inst.material);item.position.copy(pos);item.quaternion.copy(quat);item.scale.copy(scale);item.castShadow=inst.castShadow;item.receiveShadow=inst.receiveShadow;item.frustumCulled=false;item.renderOrder=inst.renderOrder;holder.add(item);
+   }
+   parent.add(holder);parent.remove(inst);converted++;
+  }
+  console.warn('Nixora Blox: modo de compatibilidad activo; lotes instanciados convertidos:',converted);
+  return converted;
+ };
+ let frameErrorSignature='',frameErrorRepeats=0;
  const frame=now=>{raf=requestAnimationFrame(frame);try{if(now-last<1000/cv('fps',60)-1)return;try{initialMeshesReady=buildInitialMeshBatch(coarseDevice?32:72)}catch(batchErr){console.error('Lote inicial: se usará representación segura',batchErr);initialMeshesReady=true;initialGroupCursor=initialGroupQueue.length}try{buildProcRenderBatch()}catch(procErr){console.error('Lote de mundo procedural omitido para evitar bloquear la partida:',procErr);const bad=procRenderJobs.shift();if(bad){bad.cancelled=true;bad.meshes.forEach(m=>{try{sc.remove(m)}catch{}});procChunkRenderers.delete(bad.key)}}
   const dt=Math.min((now-last)/1000,.05);last=now;t+=dt;fc++;if(useDayCycle){worldHour=((cycleStart+t*.03)%24+24)%24;let si=0;while(si<cycleStops.length-2&&worldHour>cycleStops[si+1][0])si++;const [h0,c0]=cycleStops[si],[h1,c1]=cycleStops[si+1],mix=Math.max(0,Math.min(1,(worldHour-h0)/(h1-h0)));cycleCol.copy(c0).lerp(c1,mix);sc.background.copy(cycleCol);skyM.color.copy(cycleCol);if(sc.fog)sc.fog.color.copy(cycleCol);const daylight=Math.max(0,Math.sin((worldHour-6)/12*Math.PI));amb.intensity=(.30+.52*daylight)*(S.bright??1);dl.intensity=.12+.78*daylight;}else{worldHour=cycleStart;cycleCol.copy(initialSkyColor)}
   // Clima automático en exteriores, o clima fijado desde Studio > Lighting.
@@ -1582,7 +1655,7 @@ function play(id,roomCode='',createRoom=false){
    m.cd-=dt;if(target.name===me&&l<1.5+m.h/2&&m.navLineClear&&m.cd<=0){m.cd=1;pl.hp-=m.dm;beep(160,.12)}m.g=!m.navClimb;m.swimming=false;m.climbing=!!m.navClimb;m.m.position.set(m.p.x,m.p.y+bob,m.p.z);m.m.scale.setScalar((m.fl>0?1.08:1)*m.baseScale);anim(m,t,dt)});for(let mi=mobs.length-1;mi>=0;mi--)if(mobs[mi].dead)mobs.splice(mi,1);
   pl.hp=ADM.god?100:Math.min(100,pl.hp+2*dt);if(pl.hp<=0){pl.hp=100;pl.p.set(0,1,0);pl.vy=0;say('Juego','Has caído. ¡Reapareces!')}
   $('#hp').textContent=mobs.length||hasSword?'❤ '+Math.ceil(pl.hp):'';
-  hooks.forEach(h=>h(dt,t));
+  for(let hi=hooks.length-1;hi>=0;hi--){const hook=hooks[hi];try{hook(dt,t)}catch(hookError){console.error('Nixora Blox: se aisló una función de objetivo para evitar detener la partida.',hookError);hooks.splice(hi,1);try{say('Sistema','Una función del juego falló y se desactivó para proteger la partida. Revisa la consola si el problema continúa.')}catch{}}}
   Object.values(rp).forEach(r=>{r.p.lerp(r.tp,.25);r.ty=r.ry||0;if(r.petM){r.petM.position.set(r.p.x+.82,r.p.y+.02,r.p.z+.32);r.petM.rotation.y=t*.45}});[pl,bot,...Object.values(rp)].forEach(e=>{e.m.position.copy(e.p);anim(e,t,dt)});pl.m.scale.x=pl.m.scale.z=ADM.size||1;pl.m.scale.y*=ADM.size||1;bot.m.position.y+=Math.abs(Math.sin(t*8))*.12*bot.sp;
   if(now-ns>66){ns=now;net({t:'st',x:pl.p.x,y:pl.p.y,z:pl.p.z,ry:pl.m.rotation.y,sp:pl.sp,g:pl.g?1:0,cr:pl.cr?1:0})}
   if(MULTI_CONNECTED&&WORLD_HOST&&now-LAST_MOB_SYNC>125){LAST_MOB_SYNC=now;net({t:'mobSnapshot',mobs:mobs.filter(m=>!m.dead).slice(0,100).map(m=>({id:m.netId,x:m.p.x,y:m.p.y,z:m.p.z,hp:m.hp,maxHp:m.maxHp,sp:m.sp,size:m.h,speed:m.navSpeed,dmg:m.dm,peaceful:!!m.pc,color:m.color,zombie:!!m.zombie,boss:!!m.boss,species:m.species||'',skinIndex:m.skinIndex||0}))})}
@@ -1590,7 +1663,9 @@ function play(id,roomCode='',createRoom=false){
   const c=Math.cos(pitch),fp=dist<1,hy=pl.p.y+(pl.so||0)+1.6*pl.m.scale.y;pl.m.visible=!fp&&!ADM.invis;
   if(fp){cam.position.set(pl.p.x,hy,pl.p.z);cam.lookAt(pl.p.x-Math.sin(yaw)*c,hy-Math.sin(pitch),pl.p.z-Math.cos(yaw)*c)}
   else{cam.position.set(pl.p.x+Math.sin(yaw)*c*dist,Math.max(.3,hy-.1+Math.sin(pitch)*dist),pl.p.z+Math.cos(yaw)*c*dist);cam.lookAt(pl.p.x,hy-.2,pl.p.z)}
-  dl.target.position.copy(pl.p);skyD.position.copy(pl.p);gm.position.x=pl.p.x;gm.position.z=pl.p.z;gd.position.x=Math.round(pl.p.x/2)*2;gd.position.z=Math.round(pl.p.z/2)*2;cl.forEach(c=>{c.position.x+=dt*1.5;if(c.position.x>pl.p.x+220)c.position.x-=440;if(c.position.x<pl.p.x-220)c.position.x+=440;if(c.position.z>pl.p.z+220)c.position.z-=440;if(c.position.z<pl.p.z-220)c.position.z+=440});GR.render(sc,cam);if(initialMeshesReady&&$('#gameLoading'))$('#gameLoading').hidden=true}catch(err){cancelAnimationFrame(raf);console.error('Error durante la partida de Nixora Blox:',err);showGameRuntimeError(err)}};
+  dl.target.position.copy(pl.p);skyD.position.copy(pl.p);gm.position.x=pl.p.x;gm.position.z=pl.p.z;gd.position.x=Math.round(pl.p.x/2)*2;gd.position.z=Math.round(pl.p.z/2)*2;cl.forEach(c=>{c.position.x+=dt*1.5;if(c.position.x>pl.p.x+220)c.position.x-=440;if(c.position.x<pl.p.x-220)c.position.x+=440;if(c.position.z>pl.p.z+220)c.position.z-=440;if(c.position.z<pl.p.z-220)c.position.z+=440});
+  try{GR.render(sc,cam)}catch(renderErr){const detail=String(renderErr&&renderErr.message||renderErr);if(!renderErr.__nxRetried&&/computeBoundingSphere|computeBoundingBox|InstancedMesh|boundingSphere|instanceMatrix/i.test(detail)){console.warn('Nixora Blox: error de compatibilidad gráfica; convirtiendo los lotes a mallas seguras.',renderErr);renderErr.__nxRetried=true;convertInstancedMeshesToSafeMeshes();GR.render(sc,cam)}else throw renderErr}
+  if(initialMeshesReady&&$('#gameLoading'))$('#gameLoading').hidden=true;frameErrorSignature='';frameErrorRepeats=0}catch(err){const signature=String(err&&err.name||'Error')+': '+String(err&&err.message||err);if(signature===frameErrorSignature)frameErrorRepeats++;else{frameErrorSignature=signature;frameErrorRepeats=1}console.error('Error durante la partida de Nixora Blox ('+frameErrorRepeats+'/3):',err);if(frameErrorRepeats<3){if(frameErrorRepeats===1){try{if($('#sc'))$('#sc').textContent='Recuperando un error temporal del juego…'}catch{}}return}cancelAnimationFrame(raf);showGameRuntimeError(err)}};
  raf=requestAnimationFrame(frame);
  quit=()=>{if(window.nixoraGameRecovery===quit)window.nixoraGameRecovery=null;if(thunderTimer){clearTimeout(thunderTimer);thunderTimer=null}try{const sharedGeometry=new Set(GEO),sharedMaterials=new Set(MAT_CACHE.values());sc.traverse(o=>{if(o.geometry&&!sharedGeometry.has(o.geometry))o.geometry.dispose();if(o.material){for(const m of (Array.isArray(o.material)?o.material:[o.material]))if(m&&!sharedMaterials.has(m))m.dispose()}});if(GR&&GR.renderLists&&GR.renderLists.dispose)GR.renderLists.dispose()}catch(cleanupError){}GAME=null;ACTIVE_WORLD='';ACTIVE_ROOM='';MULTI_CONNECTED=false;WORLD_HOST=true;window.__nixoraGameChatSend=null;window.__nxPauseRender=null;window.__nxPauseAction=null;closePauseMenu();if(pauseRecorder&&pauseRecording){try{pauseRecorder.stop()}catch(e){}pauseRecording=false}setGameChat(false,false);document.onpointerlockchange=null;document.exitPointerLock&&document.exitPointerLock();$('#sc').textContent='';$('#hp').textContent='';try{ws&&ws.close()}catch(e){}cancelAnimationFrame(raf);removeEventListener('keydown',kd);removeEventListener('keyup',ku);removeEventListener('pointerup',pu);removeEventListener('pointercancel',pu);removeEventListener('pointermove',pm);removeEventListener('resize',rs);
   $('#play').hidden=true;$('#app').hidden=false;if($('#gameLoading'))$('#gameLoading').hidden=true;if($('#gameRuntimeError'))$('#gameRuntimeError').hidden=true;$('#ab').hidden=true;$('#ib').hidden=true;$('#play').classList.remove('combat-mode','interaction-mode');if(window.__nxBgStart)window.__nxBgStart();go(cur)};window.nixoraGameRecovery=quit;
