@@ -10,7 +10,10 @@
 <div id="app" hidden>
 <header><span class="logo">Nixora Blox</span><nav id="nav"></nav><input id="q" placeholder="🔎 Buscar juegos" oninput="go('home')"><span id="wal" style="margin-left:auto"></span><span id="who"></span><button id="admbtn" class="s" hidden onclick="apOpen()">🛡 Admin (P)</button><button class="s" onclick="logout()">Salir</button></header>
 <aside id="side"></aside><main id="main"></main></div>
-<div id="play" hidden><canvas id="cv"></canvas>
+<div id="play" hidden>
+<div id="gameLoading" hidden aria-live="polite"><div class="nx-game-loading-card"><span class="nx-game-spinner" aria-hidden="true"></span><b>Preparando el mundo…</b><small>Construyendo el mapa para evitar una pantalla negra.</small></div></div>
+<div id="gameRuntimeError" hidden role="alert"><section class="nx-game-error-card"><div class="nx-game-error-icon">!</div><h2>No se pudo continuar la partida</h2><p>El motor del juego encontró un problema. No te dejaremos atrapado en una pantalla negra.</p><small id="gameRuntimeDetails">Vuelve al menú e inténtalo otra vez.</small><button onclick="window.nixoraGameRecovery ? window.nixoraGameRecovery() : location.reload()">Volver al menú</button></section></div>
+<canvas id="cv"></canvas>
 <div id="hud"><b id="gt"></b><div id="pl"></div><small id="fps"></small><small id="sc"></small><small id="hp"></small><small id="wl"></small><small>WASD mover · Espacio saltar · Shift agacharse · I/O zoom (1.ª persona) · Clic: mirar con el ratón (Esc suelta) · F: atacar · Esc: pausa / salir</small></div>
 <button id="ex" onclick="openPauseMenu('Players')">☰ Menú</button><div id="joy"><div id="knob"></div></div><div id="dpad" aria-label="Controles de movimiento"><button id="upb">▲</button><div><button id="leftb">◀</button><button id="downb">▼</button><button id="rightb">▶</button></div></div><button id="jb" aria-label="Saltar" title="Saltar">⬆</button><button id="cb" aria-label="Agacharse" title="Agacharse">🧎</button><button id="ab" hidden aria-label="Atacar" title="Atacar">⚔</button><button id="ib" hidden aria-label="Interactuar" title="Interactuar">E</button><div id="pm" hidden aria-label="Menú de pausa"><div class="nx-pause-shell">
   <div class="nx-pause-tabs" role="tablist" aria-label="Pausa">

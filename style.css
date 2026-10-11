@@ -448,3 +448,17 @@ body.touch #play.interaction-mode.combat-mode #ib:not([hidden]){right:120px}
 .nx-player-actions{flex-wrap:wrap}
 @keyframes nxFriendPop{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
 @media(max-width:680px){.nx-profile-preview{width:100%;height:170px}.nx-profile-large{flex-direction:column}.nx-player-card-avatar{width:36px;height:36px}.nx-player-row{flex-direction:row!important;align-items:center!important}.nx-player-actions{width:auto!important;flex:1;flex-wrap:wrap}.nx-pause-bottom{grid-template-columns:repeat(2,minmax(0,1fr))!important;max-height:150px;overflow:auto}.nx-pause-action{min-height:56px!important;flex-direction:row!important;justify-content:flex-start!important;font-size:11px!important}.nx-pause-key{min-width:29px!important;height:29px!important;font-size:12px!important}}
+
+
+/* Carga y recuperación del juego: nunca dejar una pantalla negra sin explicación. */
+#gameLoading,#gameRuntimeError{position:fixed;inset:0;display:grid;place-items:center;padding:18px;z-index:58;background:radial-gradient(ellipse at 50% 35%,#28143b 0%,#100a18 65%,#08060d 100%);color:#faf5ff}
+#gameLoading[hidden],#gameRuntimeError[hidden]{display:none!important}
+.nx-game-loading-card{display:grid;justify-items:center;gap:12px;text-align:center;padding:24px 28px;max-width:min(420px,90vw);border:1px solid #624080;border-radius:18px;background:#170e22ed;box-shadow:0 20px 60px #0008}
+.nx-game-loading-card b{font-size:19px}.nx-game-loading-card small{color:#cbb8df;line-height:1.5}
+.nx-game-spinner{width:42px;height:42px;border-radius:50%;border:4px solid #4c3261;border-top-color:#d8b4fe;animation:nxGameSpin .8s linear infinite}
+.nx-game-error-card{width:min(440px,92vw);padding:24px;border:1px solid #8052a6;border-radius:18px;background:linear-gradient(150deg,#241332,#110b18);box-shadow:0 20px 70px #000a;text-align:center}
+.nx-game-error-card h2{margin:8px 0;color:#f3e8ff}.nx-game-error-card p{line-height:1.5;color:#dfd0ef}.nx-game-error-card small{display:block;color:#c4addb;overflow-wrap:anywhere;margin:12px 0 18px}.nx-game-error-card button{padding:11px 18px;border:1px solid #b784e8;border-radius:10px;background:linear-gradient(120deg,#9333ea,#6b21a8);color:white;font-weight:800}
+.nx-game-error-icon{display:grid;place-items:center;margin:auto;width:44px;height:44px;border-radius:50%;font-weight:900;font-size:27px;color:white;background:#7c2d92;border:2px solid #d8b4fe}
+@keyframes nxGameSpin{to{transform:rotate(360deg)}}
+.nx-player-card-avatar{width:42px;height:42px;display:block;flex:none;object-fit:contain;border-radius:9px;border:2px solid #c084fc;background:#1b1028;box-shadow:0 0 0 3px #6d28d933}
+@media(max-width:680px){.nx-player-card-avatar{width:36px;height:36px}}
