@@ -27,7 +27,7 @@
     <button class="nx-pause-action" onclick="pauseMenuAction('instructions')"><span class="nx-pause-key">📖</span><b>Instructions</b></button>
     <button class="nx-pause-action nx-pause-resume" onclick="pauseMenuAction('resume')"><span class="nx-pause-key">ESC</span><b>Resume Game</b></button>
   </div>
-</div></div><div id="gameInstructions" hidden role="dialog" aria-modal="true" aria-labelledby="gameHelpTitle"><div class="game-help-card"><button class="game-help-close" onclick="closeGameInstructions()" aria-label="Cerrar instrucciones">✕</button><div id="gameInstructionsContent"></div><button class="game-help-primary" onclick="closeGameInstructions()">¡Entendido, jugar!</button></div></div>
+</div></div><div id="nxFriendRequestRoot" hidden aria-live="polite" aria-label="Solicitudes de amistad"></div><div id="gameInstructions" hidden role="dialog" aria-modal="true" aria-labelledby="gameHelpTitle"><div class="game-help-card"><button class="game-help-close" onclick="closeGameInstructions()" aria-label="Cerrar instrucciones">✕</button><div id="gameInstructionsContent"></div><button class="game-help-primary" onclick="closeGameInstructions()">¡Entendido, jugar!</button></div></div>
 <div id="chat" class="chat-hidden" aria-label="Chat público del juego"><button id="chatToggle" type="button" aria-expanded="false" onclick="toggleGameChat()" title="Mostrar u ocultar chat">−</button><div id="log" aria-live="polite"></div><div class="r"><input id="ci" placeholder="Escribe y pulsa Enter…" autocomplete="off" maxlength="200"><button id="chatSend" type="button" onclick="sendGameChat()">Enviar</button></div></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="script.js"></script></body></html>

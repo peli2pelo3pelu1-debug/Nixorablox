@@ -65,6 +65,32 @@ async function initAuthSchema(){
  })().catch(e=>{authSchemaPromise=null;throw e});
  return authSchemaPromise;
 }
+let socialSchemaPromise=null;
+async function initSocialSchema(){
+ if(!economyPool)throw new Error('Falta DATABASE_URL o no se pudo iniciar PostgreSQL.');
+ if(!socialSchemaPromise)socialSchemaPromise=(async()=>{
+  await economyPool.query(`CREATE TABLE IF NOT EXISTS nixora_friend_requests (
+   sender_norm TEXT NOT NULL, recipient_norm TEXT NOT NULL,
+   sender_name TEXT NOT NULL, recipient_name TEXT NOT NULL,
+   status TEXT NOT NULL DEFAULT 'pending', profile_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), responded_at TIMESTAMPTZ NULL,
+   PRIMARY KEY(sender_norm,recipient_norm)
+  )`);
+  await economyPool.query(`CREATE INDEX IF NOT EXISTS nixora_friend_requests_recipient ON nixora_friend_requests(recipient_norm,status,created_at DESC)`);
+  await economyPool.query(`CREATE TABLE IF NOT EXISTS nixora_social_privacy (username_norm TEXT PRIMARY KEY, username TEXT NOT NULL, allow_friend_requests BOOLEAN NOT NULL DEFAULT TRUE, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
+  await economyPool.query(`CREATE TABLE IF NOT EXISTS nixora_player_reports (id BIGSERIAL PRIMARY KEY, reporter_norm TEXT NOT NULL, reporter_name TEXT NOT NULL, target_norm TEXT NOT NULL, target_name TEXT NOT NULL, world_id TEXT NOT NULL, reason TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
+  await economyPool.query(`CREATE INDEX IF NOT EXISTS nixora_player_reports_status_date ON nixora_player_reports(status,created_at DESC)`);
+  await economyPool.query(`CREATE TABLE IF NOT EXISTS nixora_friends (
+   user_a TEXT NOT NULL, user_b TEXT NOT NULL, user_a_name TEXT NOT NULL, user_b_name TEXT NOT NULL,
+   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), PRIMARY KEY(user_a,user_b), CHECK(user_a < user_b)
+  )`);
+  await economyPool.query(`CREATE TABLE IF NOT EXISTS nixora_blocks (
+   owner_norm TEXT NOT NULL, target_norm TEXT NOT NULL, owner_name TEXT NOT NULL, target_name TEXT NOT NULL,
+   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), PRIMARY KEY(owner_norm,target_norm), CHECK(owner_norm <> target_norm)
+  )`);
+ })().catch(e=>{socialSchemaPromise=null;throw e});
+ return socialSchemaPromise;
+}
 let promoSchemaPromise=null;
 async function initPromoSchema(){
  if(!economyPool)throw new Error('Falta DATABASE_URL o no se pudo iniciar PostgreSQL.');
@@ -411,6 +437,17 @@ wss.on('connection',ws=>{const id=nid++;
    const n=String(d.n||'').replace(/[^\w-]/g,'').slice(0,16),world=String(d.world||d.g||'').slice(0,80),room=String(d.room||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,12),g=room?world+'::'+room:world,sid=cleanSessionId(d.sessionId);
    if(!safeUsername(n)||!world||!sid||!economyPool){ws.send(JSON.stringify({t:'chat',n:'Servidor',m:'No se pudo verificar tu sesión. Vuelve a iniciar sesión.'}));return ws.close(1008,'Sesión no válida')}
    try{await initAuthSchema();const valid=await economyPool.query('SELECT 1 FROM nixora_account_sessions WHERE username_norm=$1 AND session_id=$2 AND expires_at>NOW()',[n.toLowerCase(),sid]);if(!valid.rowCount){ws.send(JSON.stringify({t:'chat',n:'Servidor',m:'No se pudo verificar tu sesión. Vuelve a iniciar sesión.'}));return ws.close(1008,'Sesión no válida')}}catch(err){console.error('No se pudo validar sesión WebSocket:',err.message);ws.send(JSON.stringify({t:'chat',n:'Servidor',m:'No se pudo verificar tu sesión con PostgreSQL.'}));return ws.close(1011,'Validación fallida')}
+   let socialData={blocks:[],friends:[],incoming:[],allowFriendRequests:true};
+   try{
+    await initSocialSchema();const norm=n.toLowerCase();
+    const [bq,fq,rq,pq]=await Promise.all([
+     economyPool.query('SELECT target_name FROM nixora_blocks WHERE owner_norm=$1',[norm]),
+     economyPool.query('SELECT CASE WHEN user_a=$1 THEN user_b_name ELSE user_a_name END AS name FROM nixora_friends WHERE user_a=$1 OR user_b=$1',[norm]),
+     economyPool.query("SELECT sender_name,profile_json FROM nixora_friend_requests WHERE recipient_norm=$1 AND status='pending' ORDER BY created_at DESC LIMIT 30",[norm]),
+     economyPool.query('SELECT allow_friend_requests FROM nixora_social_privacy WHERE username_norm=$1',[norm])
+    ]);
+    socialData={blocks:bq.rows.map(r=>r.target_name),friends:fq.rows.map(r=>r.name),incoming:rq.rows.map(r=>({from:r.sender_name,profile:r.profile_json||{}})),allowFriendRequests:!pq.rowCount||pq.rows[0].allow_friend_requests!==false};
+   }catch(err){console.error('No se pudo cargar la lista social:',err.message);ws.send(JSON.stringify({t:'chat',n:'Servidor',m:'No se pudo cargar el sistema de amigos. Intenta volver a entrar.'}));return ws.close(1011,'Sistema social no disponible')}
    // La autenticación PostgreSQL anterior ya confirmó el sessionId actual.
    // Si queda otro WebSocket con el mismo nombre, puede ser una conexión vieja
    // del juego anterior o un reingreso rápido: reemplazarla evita falsos bloqueos.
@@ -426,16 +463,28 @@ wss.on('connection',ws=>{const id=nid++;
    const currentRoom=[...P.values()].filter(p=>p.g===g),pvp=!!d.pvp,duelMembers=[...P.entries()].filter(([otherId,p])=>otherId!==id&&p.g===g&&p.pvp);
    if(pvp&&duelMembers.length>=2){ws.send(JSON.stringify({t:'chat',n:'Arena',m:'Esta arena ya tiene dos jugadores. Busca otra partida 1 contra 1.'}));return ws.close(1008,'Arena completa')}
    const side=pvp?(duelMembers.length?(duelMembers[0][1].side===1?2:1):1):0,usedSlots=new Set(currentRoom.map(p=>p.slot));let slot=0;while(usedSlots.has(slot)&&slot<128)slot++;const isWorldHost=currentRoom.length===0;
-   const me={id,ws,n,g,world,room,av:d.av||{},rank:String(d.rank||'').slice(0,40),x:0,y:0,z:0,ry:0,sp:0,cr:0,pvp,side,hp:100,kos:0,lastAttack:0,lastMobAttack:0,won:false,slot,isWorldHost,lastGameEvent:0,lastMobSnapshot:0};
+   const me={id,ws,n,g,world,room,av:d.av||{},description:String(d.description||'').slice(0,750),pet:d.pet&&typeof d.pet==='object'?d.pet:null,equipment:d.equipment&&typeof d.equipment==='object'?d.equipment:(d.av||{}),rank:String(d.rank||'').slice(0,40),x:0,y:0,z:0,ry:0,sp:0,cr:0,pvp,side,hp:100,kos:0,lastAttack:0,lastMobAttack:0,lastReportAt:0,won:false,slot,isWorldHost,lastGameEvent:0,lastMobSnapshot:0,blockedNames:new Set(socialData.blocks.map(n=>String(n).toLowerCase()))};
    P.set(id,me);
+   ws.send(JSON.stringify({t:'socialSnapshot',blocks:socialData.blocks,friends:socialData.friends,incoming:socialData.incoming,allowFriendRequests:socialData.allowFriendRequests}));
    const rd=roomData(g);ws.send(JSON.stringify({t:'worldSnapshot',host:isWorldHost,slot,state:Object.fromEntries(rd.state),removed:[...rd.removed].slice(0,2500),blocks:[...rd.blocks.entries()].map(([key,block])=>({key,block})).slice(0,1000),mobs:[...rd.mobs.values()].filter(m=>!m.dead).slice(0,100)}));
    if(economyPool){readWallet(me.n).then(w=>{if(w&&ws.readyState===1)ws.send(JSON.stringify({t:'wallet',username:me.n,balance:Number(w.balance)}))}).catch(e=>console.error('No se pudo cargar la billetera al entrar:',e.message))}
-   for(const [otherId,p] of P){if(otherId!==id&&p.g===me.g&&p.ws.readyState===1){ws.send(JSON.stringify({t:'st',id:otherId,n:p.n,av:p.av,rank:p.rank,x:p.x,y:p.y,z:p.z,ry:p.ry,sp:p.sp,cr:p.cr}));p.ws.send(JSON.stringify({t:'st',id,n:me.n,av:me.av,rank:me.rank,x:me.x,y:me.y,z:me.z,ry:me.ry,sp:me.sp,g:me.g,cr:me.cr}));}}
+   for(const [otherId,p] of P){if(otherId!==id&&p.g===me.g&&p.ws.readyState===1){ws.send(JSON.stringify({t:'st',id:otherId,n:p.n,av:p.av,description:p.description,pet:p.pet,equipment:p.equipment,rank:p.rank,x:p.x,y:p.y,z:p.z,ry:p.ry,sp:p.sp,cr:p.cr}));p.ws.send(JSON.stringify({t:'st',id,n:me.n,av:me.av,description:me.description,pet:me.pet,equipment:me.equipment,rank:me.rank,x:me.x,y:me.y,z:me.z,ry:me.ry,sp:me.sp,g:me.g,cr:me.cr}));}}
    if(pvp){const duel=[...P.values()].filter(p=>p.g===me.g&&p.pvp);if(duel.length===1)ws.send(JSON.stringify({t:'duelWaiting'}));else if(duel.length===2){duel[0].ws.send(JSON.stringify({t:'duelStart',side:duel[0].side,opponent:duel[1].n}));duel[1].ws.send(JSON.stringify({t:'duelStart',side:duel[1].side,opponent:duel[0].n}))}}
    return;
   }
   const me=P.get(id);if(!me)return;
-  if(d.t==='st'){me.x=Number.isFinite(+d.x)?Math.max(-10000,Math.min(10000,+d.x)):me.x;me.y=Number.isFinite(+d.y)?Math.max(-1000,Math.min(1000,+d.y)):me.y;me.z=Number.isFinite(+d.z)?Math.max(-10000,Math.min(10000,+d.z)):me.z;me.ry=Number.isFinite(+d.ry)?+d.ry:me.ry;me.sp=Number.isFinite(+d.sp)?+d.sp:0;me.cr=+d.cr?1:0;bc(me,{t:'st',id,n:me.n,av:me.av,rank:me.rank,x:me.x,y:me.y,z:me.z,ry:me.ry,sp:me.sp,g:me.g,cr:me.cr})}
+  if(d.t==='profileUpdate'){
+   if(d.description!==undefined)me.description=String(d.description||'').slice(0,750);
+   if(d.av&&typeof d.av==='object'&&jsonSize(d.av)<=4096)me.av=d.av;
+   if(d.pet&&typeof d.pet==='object'&&jsonSize(d.pet)<=1024)me.pet=d.pet;
+   if(d.equipment&&typeof d.equipment==='object'&&jsonSize(d.equipment)<=4096)me.equipment=d.equipment;
+   const profileMessage={t:'profileUpdated',id:me.id,n:me.n,av:me.av,description:me.description,pet:me.pet,equipment:me.equipment,rank:me.rank,x:me.x,y:me.y,z:me.z,ry:me.ry,sp:me.sp,g:me.g,cr:me.cr};
+   broadcastRoom(me.g,profileMessage);ws.send(JSON.stringify({t:'profileUpdated',self:true,ok:true}));return;
+  }
+  if(d.t==='friendPrivacyUpdate'){
+   const allowed=d.allowed!==false;try{await initSocialSchema();await economyPool.query('INSERT INTO nixora_social_privacy(username_norm,username,allow_friend_requests,updated_at) VALUES($1,$2,$3,NOW()) ON CONFLICT(username_norm) DO UPDATE SET username=EXCLUDED.username,allow_friend_requests=EXCLUDED.allow_friend_requests,updated_at=NOW()',[me.n.toLowerCase(),me.n,allowed]);ws.send(JSON.stringify({t:'friendPrivacyResult',ok:true,allowed}));}catch(err){console.error('Error privacidad social:',err.message);ws.send(JSON.stringify({t:'friendPrivacyResult',ok:false,allowed:!allowed,message:'No se pudo guardar la preferencia.'}));}return;
+  }
+  if(d.t==='st'){me.x=Number.isFinite(+d.x)?Math.max(-10000,Math.min(10000,+d.x)):me.x;me.y=Number.isFinite(+d.y)?Math.max(-1000,Math.min(1000,+d.y)):me.y;me.z=Number.isFinite(+d.z)?Math.max(-10000,Math.min(10000,+d.z)):me.z;me.ry=Number.isFinite(+d.ry)?+d.ry:me.ry;me.sp=Number.isFinite(+d.sp)?+d.sp:0;me.cr=+d.cr?1:0;bc(me,{t:'st',id,n:me.n,av:me.av,description:me.description,pet:me.pet,equipment:me.equipment,rank:me.rank,x:me.x,y:me.y,z:me.z,ry:me.ry,sp:me.sp,g:me.g,cr:me.cr})}
   if(d.t==='attack'){
    if(!me.pvp||me.won||Date.now()-me.lastAttack<450)return;
    const tid=Number(d.targetId),target=P.get(tid);if(!target||target===me||!target.pvp||target.g!==me.g||target.won||target.ws.readyState!==1)return;
@@ -453,6 +502,62 @@ wss.on('connection',ws=>{const id=nid++;
    const type=String(d.eventType||'');if(!/^[A-Za-z0-9:_-]{1,40}$/.test(type)||jsonSize(d.payload)>4096||Date.now()-me.lastGameEvent<60)return;me.lastGameEvent=Date.now();
    let payload;try{payload=JSON.parse(JSON.stringify(d.payload??null))}catch{return}broadcastRoom(me.g,{t:'gameEvent',eventType:type,payload,by:me.n,playerId:id},id);return;
   }
+  const sendAccount=(username,message)=>{const norm=String(username||'').toLowerCase(),raw=JSON.stringify(message);for(const p of P.values())if(p.n.toLowerCase()===norm&&p.ws.readyState===1)p.ws.send(raw)};
+  if(d.t==='reportPlayer'){
+   const target=safeUsername(d.target),reason=String(d.reason||'').trim().slice(0,400);
+   if(!target||target.toLowerCase()===me.n.toLowerCase()||reason.length<5){ws.send(JSON.stringify({t:'reportResult',ok:false,message:'Selecciona otro jugador y escribe un motivo de al menos 5 caracteres.'}));return}
+   if(Date.now()-me.lastReportAt<10000){ws.send(JSON.stringify({t:'reportResult',ok:false,message:'Espera unos segundos antes de enviar otro reporte.'}));return}
+   const targetOnline=[...P.values()].some(p=>p.g===me.g&&p.n.toLowerCase()===target.toLowerCase());if(!targetOnline){ws.send(JSON.stringify({t:'reportResult',ok:false,message:'Ese jugador ya no está conectado a esta sala.'}));return}
+   try{await initSocialSchema();await economyPool.query("INSERT INTO nixora_player_reports(reporter_norm,reporter_name,target_norm,target_name,world_id,reason,status,created_at) VALUES($1,$2,$3,$4,$5,$6,'pending',NOW())",[me.n.toLowerCase(),me.n,target.toLowerCase(),target,me.world,reason]);me.lastReportAt=Date.now();ws.send(JSON.stringify({t:'reportResult',ok:true,message:'Reporte guardado en el servidor.'}));sendAccount('ParaCraftero',{t:'moderationNotice',reporter:me.n,target,world:me.world,reason});return}
+   catch(err){console.error('Error guardando reporte:',err.message);ws.send(JSON.stringify({t:'reportResult',ok:false,message:'No se pudo guardar el reporte en PostgreSQL.'}));return}
+  }
+  if(d.t==='friendRequest'){
+   const to=safeUsername(d.to),fromNorm=me.n.toLowerCase();if(!to||to.toLowerCase()===fromNorm){ws.send(JSON.stringify({t:'friendRequestResult',ok:false,to:String(d.to||''),message:'Ese nombre no es válido.'}));return}
+   try{
+    const toNorm=to.toLowerCase();await initSocialSchema();
+    const pref=await economyPool.query('SELECT allow_friend_requests FROM nixora_social_privacy WHERE username_norm=$1',[toNorm]);if(pref.rowCount&&pref.rows[0].allow_friend_requests===false){ws.send(JSON.stringify({t:'friendRequestResult',ok:false,to,message:'Este jugador no acepta solicitudes de amistad.'}));return}
+    const blocked=await economyPool.query('SELECT 1 FROM nixora_blocks WHERE (owner_norm=$1 AND target_norm=$2) OR (owner_norm=$2 AND target_norm=$1) LIMIT 1',[fromNorm,toNorm]);
+    if(blocked.rowCount){ws.send(JSON.stringify({t:'friendRequestResult',ok:false,to,message:'No se puede enviar una solicitud debido a un bloqueo.'}));return}
+    const friend=await economyPool.query('SELECT 1 FROM nixora_friends WHERE (user_a=$1 AND user_b=$2) OR (user_a=$2 AND user_b=$1) LIMIT 1',[fromNorm,toNorm]);
+    if(friend.rowCount){ws.send(JSON.stringify({t:'friendRequestResult',ok:false,to,message:'Ya son amigos.'}));return}
+    const profile={av:me.av||{},description:me.description||'',pet:me.pet||null,equipment:me.equipment||me.av||{},rank:me.rank||''};
+    const ins=await economyPool.query("INSERT INTO nixora_friend_requests(sender_norm,recipient_norm,sender_name,recipient_name,status,profile_json,created_at,responded_at) VALUES($1,$2,$3,$4,'pending',$5::jsonb,NOW(),NULL) ON CONFLICT(sender_norm,recipient_norm) DO UPDATE SET sender_name=EXCLUDED.sender_name,recipient_name=EXCLUDED.recipient_name,status='pending',profile_json=EXCLUDED.profile_json,created_at=NOW(),responded_at=NULL WHERE nixora_friend_requests.status<>'pending' RETURNING sender_norm",[fromNorm,toNorm,me.n,to,JSON.stringify(profile)]);
+    if(!ins.rowCount){ws.send(JSON.stringify({t:'friendRequestResult',ok:false,to,message:'Ya enviaste una solicitud pendiente.'}));return}
+    sendAccount(to,{t:'friendRequestIncoming',from:me.n,profile});ws.send(JSON.stringify({t:'friendRequestResult',ok:true,to,message:'Solicitud enviada.'}));return;
+   }catch(err){console.error('Error solicitud de amistad:',err.message);ws.send(JSON.stringify({t:'friendRequestResult',ok:false,to,message:'No se pudo guardar la solicitud. Intenta de nuevo.'}));return}
+  }
+  if(d.t==='friendResponse'){
+   const from=safeUsername(d.from),decision=String(d.decision||'');if(!from||!['accept','ignore'].includes(decision))return;
+   const client=await economyPool.connect();try{
+    await initSocialSchema();await client.query('BEGIN');
+    const row=await client.query("SELECT sender_norm,recipient_norm,sender_name,recipient_name FROM nixora_friend_requests WHERE sender_norm=$1 AND recipient_norm=$2 AND status='pending' FOR UPDATE",[from.toLowerCase(),me.n.toLowerCase()]);
+    if(!row.rowCount){await client.query('ROLLBACK');ws.send(JSON.stringify({t:'friendResponseResult',ok:false,from,message:'La solicitud ya no está pendiente.'}));return}
+    const rq=row.rows[0];
+    if(decision==='accept'){
+     const a=rq.sender_norm<rq.recipient_norm?{norm:rq.sender_norm,name:rq.sender_name}:{norm:rq.recipient_norm,name:rq.recipient_name};
+     const b=rq.sender_norm<rq.recipient_norm?{norm:rq.recipient_norm,name:rq.recipient_name}:{norm:rq.sender_norm,name:rq.sender_name};
+     await client.query('INSERT INTO nixora_friends(user_a,user_b,user_a_name,user_b_name) VALUES($1,$2,$3,$4) ON CONFLICT(user_a,user_b) DO NOTHING',[a.norm,b.norm,a.name,b.name]);
+    }
+    await client.query("UPDATE nixora_friend_requests SET status=$3,responded_at=NOW() WHERE sender_norm=$1 AND recipient_norm=$2",[rq.sender_norm,rq.recipient_norm,decision==='accept'?'accepted':'ignored']);
+    await client.query('COMMIT');
+    const msg={t:'friendResponseResult',ok:true,from:me.n,accepted:decision==='accept',message:decision==='accept'?me.n+' aceptó tu solicitud.':me.n+' ignoró tu solicitud.'};sendAccount(rq.sender_name,msg);
+    ws.send(JSON.stringify({t:'friendResponseResult',ok:true,from,message:decision==='accept'?'Ahora son amigos.':'Solicitud ignorada.',accepted:decision==='accept'}));return;
+   }catch(err){try{await client.query('ROLLBACK')}catch{}console.error('Error al responder amistad:',err.message);ws.send(JSON.stringify({t:'friendResponseResult',ok:false,from,message:'No se pudo actualizar la solicitud.'}));return}finally{client.release()}
+  }
+  if(d.t==='blockPlayer'||d.t==='unblockPlayer'){
+   const target=safeUsername(d.target);if(!target||target.toLowerCase()===me.n.toLowerCase())return;
+   const targetNorm=target.toLowerCase();try{
+    await initSocialSchema();
+    if(d.t==='blockPlayer'){
+     await economyPool.query('INSERT INTO nixora_blocks(owner_norm,target_norm,owner_name,target_name) VALUES($1,$2,$3,$4) ON CONFLICT(owner_norm,target_norm) DO NOTHING',[me.n.toLowerCase(),targetNorm,me.n,target]);me.blockedNames.add(targetNorm);
+     await economyPool.query('DELETE FROM nixora_friends WHERE (user_a=$1 AND user_b=$2) OR (user_a=$2 AND user_b=$1)',[me.n.toLowerCase(),targetNorm]);
+     await economyPool.query("UPDATE nixora_friend_requests SET status='ignored',responded_at=NOW() WHERE status='pending' AND ((sender_norm=$1 AND recipient_norm=$2) OR (sender_norm=$2 AND recipient_norm=$1))",[me.n.toLowerCase(),targetNorm]);
+     ws.send(JSON.stringify({t:'blockResult',target,blocked:true}));sendAccount(target,{t:'blockedBy',by:me.n});
+    }else{
+     await economyPool.query('DELETE FROM nixora_blocks WHERE owner_norm=$1 AND target_norm=$2',[me.n.toLowerCase(),targetNorm]);me.blockedNames.delete(targetNorm);ws.send(JSON.stringify({t:'blockResult',target,blocked:false}));
+    }return;
+   }catch(err){console.error('Error al guardar bloqueo:',err.message);ws.send(JSON.stringify({t:'blockResult',target,blocked:d.t==='blockPlayer',ok:false,message:'No se pudo guardar el bloqueo.'}));return}
+  }
   if(d.t==='blockAdd'){
    const key=String(d.key||'');if(!safeRoomKey(key)||!validBlock(d.block))return;const rd=roomData(me.g);if(!rd.blocks.has(key)&&rd.blocks.size>=1000)return;const block=d.block.slice(0,13);rd.blocks.set(key,block);rd.removed.delete(key);broadcastRoom(me.g,{t:'blockAdd',key,block},id);return;
   }
@@ -461,7 +566,7 @@ wss.on('connection',ws=>{const id=nid++;
   }
   if(d.t==='mobSnapshot'){
    if(!me.isWorldHost||Date.now()-me.lastMobSnapshot<90||!Array.isArray(d.mobs))return;me.lastMobSnapshot=Date.now();const rd=roomData(me.g),valid=[];
-   for(const m of d.mobs.slice(0,100)){if(!m||!safeRoomKey(String(m.id||'')))continue;const row={id:String(m.id),x:Number(m.x)||0,y:Number(m.y)||0,z:Number(m.z)||0,hp:Math.max(0,Math.min(100000,Number(m.hp)||0)),maxHp:Math.max(1,Math.min(100000,Number(m.maxHp)||100)),dead:!!m.dead,sp:Math.max(0,Math.min(20,Number(m.sp)||0)),size:Math.max(.2,Math.min(5,Number(m.size)||.9)),speed:Math.max(0,Math.min(10,Number(m.speed??2.5)||0)),dmg:Math.max(0,Math.min(100,Number(m.dmg)||8)),peaceful:!!m.peaceful,color:typeof m.color==='string'&&m.color.length<=40?m.color:'#8d99ae',zombie:!!m.zombie,skinIndex:Math.max(0,Math.min(2,Math.floor(Number(m.skinIndex)||0)))};
+   for(const m of d.mobs.slice(0,100)){if(!m||!safeRoomKey(String(m.id||'')))continue;const row={id:String(m.id),x:Number(m.x)||0,y:Number(m.y)||0,z:Number(m.z)||0,hp:Math.max(0,Math.min(100000,Number(m.hp)||0)),maxHp:Math.max(1,Math.min(100000,Number(m.maxHp)||100)),dead:!!m.dead,sp:Math.max(0,Math.min(20,Number(m.sp)||0)),size:Math.max(.2,Math.min(5,Number(m.size)||.9)),speed:Math.max(0,Math.min(10,Number(m.speed??2.5)||0)),dmg:Math.max(0,Math.min(100,Number(m.dmg)||8)),peaceful:!!m.peaceful,color:typeof m.color==='string'&&m.color.length<=40?m.color:'#8d99ae',zombie:!!m.zombie,boss:!!m.boss,species:['cat','bird','deer','rabbit','fox','cow'].includes(m.species)?m.species:'',skinIndex:Math.max(0,Math.min(2,Math.floor(Number(m.skinIndex)||0)))};
     if([row.x,row.y,row.z].some(v=>!Number.isFinite(v)||Math.abs(v)>10000))continue;valid.push(row);if(!rd.mobs.get(row.id)?.dead)rd.mobs.set(row.id,row);
    }
    for(const [key,row] of rd.mobs)if(!row.dead&&!valid.some(m=>m.id===key))rd.mobs.delete(key);
@@ -472,7 +577,7 @@ wss.on('connection',ws=>{const id=nid++;
    const dx=me.x-target.x,dy=me.y-target.y,dz=me.z-target.z;if(dx*dx+dy*dy+dz*dz>4.8*4.8)return;me.lastMobAttack=Date.now();target.hp=Math.max(0,target.hp-15);target.dead=target.hp<=0;
    broadcastRoom(me.g,{t:'mobDamaged',mobId:targetId,hp:target.hp,dead:target.dead,attacker:me.n,playerId:id});return;
   }
-  if(d.t==='chat')bc(me,{t:'chat',n:me.n,m:clean(d.m)});
+  if(d.t==='chat'){const message=JSON.stringify({t:'chat',n:me.n,m:clean(d.m)}),senderNorm=me.n.toLowerCase();for(const recipient of P.values())if(recipient.g===me.g&&recipient.n.toLowerCase()!==senderNorm&&!me.blockedNames.has(recipient.n.toLowerCase())&&!recipient.blockedNames.has(senderNorm)&&recipient.ws.readyState===1)recipient.ws.send(message)}
  });
  ws.on('close',()=>removePlayerConnection(id));
 });
