@@ -1,4 +1,4 @@
-NIXORA BLOX — EDICIÓN ESTABLE Y CATÁLOGO REDUCIDO
+NIXORA BLOX — ESTABILIDAD V25 Y CATÁLOGO REDUCIDO
 
 Cambios de esta edición
 - Se redujo el catálogo integrado de 124 a 59 experiencias por defecto para evitar variantes redundantes. Los juegos que el usuario haya creado no se eliminan de su almacenamiento local.
@@ -6,7 +6,11 @@ Cambios de esta edición
 - Si el renderizador falla por límites o por InstancedMesh, el motor activa un modo de compatibilidad y convierte los lotes existentes en mallas normales antes de reintentar.
 - Si una zona procedural falla al generarse, se revierten los bloques parcialmente registrados y se omite solo esa zona, en vez de cortar toda la partida.
 - Un error de ejecución transitorio ya no detiene inmediatamente la animación: se muestra la pantalla de recuperación si el mismo error se repite tres fotogramas seguidos.
-- Se actualizó el identificador de caché y la URL de script.js para que Render/navegador no reutilicen los archivos de la versión anterior.
+- Se actualizó el identificador de caché y la URL de script.js. El motor Three.js dispone de tres CDN de respaldo; si todos fallan, el menú sigue disponible y se explica que el modo 3D necesita conexión.
+- Si falta WebGL, el juego muestra un diagnóstico; si pierde el contexto gráfico, pausa el render y permite recuperarlo al restaurarse.
+- Se corrigió el escalado vertical acumulativo del jugador.
+- Se liberan contextos gráficos temporales al cerrar vistas previas y se redujo el trabajo de partículas de lluvia para evitar picos de CPU.
+- La compatibilidad de InstancedMesh se repara antes de convertir lotes. La conversión a mallas individuales está limitada para evitar congelaciones por demasiadas piezas.
 
 Instalación
 1. Descomprime el ZIP.
